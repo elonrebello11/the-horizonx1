@@ -26,6 +26,7 @@
             padding: 20px;
             display: flex;
             justify-content: center;
+            position: relative;
         }
 
         .container {
@@ -77,7 +78,7 @@
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, background-color 0.2s;
         }
 
         button:hover {
@@ -86,6 +87,7 @@
 
         button:disabled {
             background-color: #475569;
+            color: #94a3b8;
             cursor: not-allowed;
         }
 
@@ -128,18 +130,56 @@
         }
 
         #resetBtn {
-            display: none; /* Secret button - unlocked via Konami Code + Password */
+            display: none; /* Hidden until unlocked via Konami Code + Password */
             background-color: #f87171;
+        }
+
+        /* Floating Audio Control Switch */
+        .music-toggle-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .music-btn {
+            background-color: #334155;
+            color: var(--accent-color);
+            border: 1px solid #475569;
+            border-radius: 30px;
+            padding: 10px 16px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+        }
+
+        .music-btn.playing {
+            background-color: var(--accent-color);
+            color: #0f172a;
         }
     </style>
 </head>
 <body>
 
+<!-- Audio Controller Component -->
+<div class="music-toggle-container">
+    <button id="musicToggleBtn" class="music-btn" onclick="toggleMusic()">
+        <span id="musicIcon">🎵</span> <span id="musicStatus">Music: OFF</span>
+    </button>
+</div>
+
+<!-- Background Audio Source -->
+<audio id="bgMusic" loop preload="auto">
+    <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=ambient-space-110241.mp3" type="audio/mpeg">
+</audio>
+
 <div class="container">
     <!-- Section 1: Submit a Word -->
     <div class="card">
         <h1>Submit Today's Word</h1>
-        <p>Type a single word to contribute to today's community story.</p>
+        <p>Type a single word to contribute to today's community story (1 submission per day).</p>
         <div class="input-group">
             <input type="text" id="wordInput" placeholder="e.g., Quantum" maxlength="20">
             <button id="submitBtn" onclick="submitWord()">Submit</button>
@@ -151,7 +191,7 @@
     <div class="card">
         <h2>Today's Word Pool (<span id="wordCount">0</span>)</h2>
         <div class="word-bank" id="wordBank">
-            <!-- Words will appear here -->
+            <!-- Words appear here -->
         </div>
         <div class="controls">
             <button onclick="generateStory()">Simulate Daily Story Synthesis</button>
@@ -198,24 +238,76 @@
     // Gemini API Key
     const GEMINI_API_KEY = "AQ.Ab8RN6Kx8ce0EnB4T96nig7gWpljl3xinL33a6hUWm0FC263dQ"; 
 
+    // --- MUSIC TOGGLE LOGIC ---
+    let isMusicPlaying = false;
+    const audio = document.getElementById("bgMusic");
+    const musicBtn = document.getElementById("musicToggleBtn");
+    const musicIcon = document.getElementById("musicIcon");
+    const musicStatus = document.getElementById("musicStatus");
+
+    function toggleMusic() {
+        if (isMusicPlaying) {
+            audio.pause();
+            musicBtn.classList.remove("playing");
+            musicIcon.textContent = "🎵";
+            musicStatus.textContent = "Music: OFF";
+            isMusicPlaying = false;
+        } else {
+            audio.play().then(() => {
+                musicBtn.classList.add("playing");
+                musicIcon.textContent = "🎶";
+                musicStatus.textContent = "Music: ON";
+                isMusicPlaying = true;
+            }).catch(err => {
+                console.error("Audio play failed:", err);
+            });
+        }
+    }
+
     function getTodayDateString() {
         return new Date().toISOString().split('T')[0];
     }
 
-    // Daily Reset Check
+    // Check submission restriction on load
+    document.addEventListener("DOMContentLoaded", () => {
+        checkSubmissionStatus();
+    });
+
+    function checkSubmissionStatus() {
+        const hasSubmitted = localStorage.getItem("horizon_submitted_today");
+        const today = getTodayDateString();
+
+        if (hasSubmitted && hasSubmitted !== today) {
+            localStorage.removeItem("horizon_submitted_today");
+        } else if (hasSubmitted === today) {
+            lockSubmissionUI();
+        }
+    }
+
+    function lockSubmissionUI() {
+        const input = document.getElementById("wordInput");
+        const submitBtn = document.getElementById("submitBtn");
+        const message = document.getElementById("statusMessage");
+
+        input.value = "";
+        input.disabled = true;
+        submitBtn.disabled = true;
+        message.textContent = "You have already submitted a word for today! Come back tomorrow.";
+        message.className = "message success";
+    }
+
+    // Daily Reset Logic
     function checkAndPerformDailyReset() {
         const today = getTodayDateString();
         dateRef.get().then((snapshot) => {
             const savedDate = snapshot.val();
             if (savedDate && savedDate !== today) {
-                // Move today's story to yesterday's story
                 todayStoryRef.get().then((storySnap) => {
                     if (storySnap.exists()) {
                         yesterdayStoryRef.set(storySnap.val());
                     }
                     todayStoryRef.set("Submit words and trigger synthesis to read today's story...");
                 });
-                // Clear word pool for the new day
                 wordsRef.remove();
                 dateRef.set(today);
             } else if (!savedDate) {
@@ -224,10 +316,9 @@
         });
     }
 
-    // Initial Daily Reset Check
     checkAndPerformDailyReset();
 
-    // Real-time listener for word pool
+    // Firebase listeners
     wordsRef.on("value", (snapshot) => {
         checkAndPerformDailyReset();
         const data = snapshot.val();
@@ -235,14 +326,12 @@
         updateUI();
     });
 
-    // Real-time listener for Today's Story
     todayStoryRef.on("value", (snapshot) => {
         if (snapshot.exists()) {
             document.getElementById("storyOutput").textContent = snapshot.val();
         }
     });
 
-    // Real-time listener for Yesterday's Story
     yesterdayStoryRef.on("value", (snapshot) => {
         if (snapshot.exists()) {
             document.getElementById("yesterdayStoryOutput").textContent = snapshot.val();
@@ -265,6 +354,11 @@
     }
 
     function submitWord() {
+        if (localStorage.getItem("horizon_submitted_today") === getTodayDateString()) {
+            lockSubmissionUI();
+            return;
+        }
+
         const input = document.getElementById("wordInput");
         const message = document.getElementById("statusMessage");
         const rawWord = input.value.trim().toLowerCase();
@@ -288,12 +382,10 @@
             return;
         }
 
-        // Push new word directly to Firebase Realtime Database
         wordsRef.push(rawWord);
         
-        message.textContent = `Success! "${rawWord}" added to today's pool.`;
-        message.className = "message success";
-        input.value = "";
+        localStorage.setItem("horizon_submitted_today", getTodayDateString());
+        lockSubmissionUI();
     }
 
     async function generateStory() {
@@ -326,7 +418,7 @@
             if (data.candidates && data.candidates[0].content.parts[0].text) {
                 const storyText = data.candidates[0].content.parts[0].text;
                 output.textContent = storyText;
-                todayStoryRef.set(storyText); // Save today's story in Firebase
+                todayStoryRef.set(storyText);
             } else {
                 output.textContent = "Failed to generate story. Check API key or console for details.";
             }
