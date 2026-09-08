@@ -134,6 +134,39 @@
             background-color: #f87171;
         }
 
+        /* Countdown Clock Styles */
+        .timer-container {
+            text-align: center;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .timer-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted-text);
+            margin-bottom: 4px;
+        }
+
+        .timer-clock {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: monospace;
+            color: var(--accent-color);
+        }
+
+        .footer-note {
+            text-align: center;
+            color: var(--muted-text);
+            font-size: 13px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
         /* Floating Audio Control Switch */
         .music-toggle-container {
             position: fixed;
@@ -176,6 +209,12 @@
 </audio>
 
 <div class="container">
+    <!-- Countdown Timer Card -->
+    <div class="timer-container">
+        <div class="timer-title">Time Until Next Daily Reset (Midnight IST)</div>
+        <div id="countdownClock" class="timer-clock">00h 00m 00s</div>
+    </div>
+
     <!-- Section 1: Submit a Word -->
     <div class="card">
         <h1>Submit Today's Word</h1>
@@ -194,7 +233,6 @@
             <!-- Words appear here -->
         </div>
         <div class="controls">
-            <button onclick="generateStory()">Simulate Daily Story Synthesis</button>
             <button id="resetBtn" onclick="clearPool()">Reset Pool</button>
         </div>
     </div>
@@ -202,13 +240,18 @@
     <!-- Section 3: Generated Daily Story -->
     <div class="card">
         <h2>Daily Story Output</h2>
-        <div class="story-box" id="storyOutput">Submit words and trigger synthesis to read today's story...</div>
+        <div class="story-box" id="storyOutput">Submit words to automatically generate today's story...</div>
     </div>
 
     <!-- Section 4: Yesterday's Story -->
     <div class="card">
         <h2>Yesterday's Story</h2>
         <div class="story-box" id="yesterdayStoryOutput">No story recorded for yesterday yet.</div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="footer-note">
+        Note: Story updates and daily resets occur automatically at midnight IST.
     </div>
 </div>
 
@@ -264,8 +307,43 @@
         }
     }
 
+    // --- REAL-TIME COUNTDOWN TIMER (IST MIDNIGHT) ---
+    function updateResetCountdown() {
+        // Current time in UTC
+        const now = new Date();
+        
+        // Target time: Next midnight IST (UTC +5:30)
+        // Convert current UTC time to IST equivalent timestamp
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+
+        // Midnight IST for today/tomorrow
+        const istNextMidnight = new Date(istNow);
+        istNextMidnight.setHours(24, 0, 0, 0);
+
+        const diff = istNextMidnight - istNow;
+
+        if (diff <= 0) {
+            checkAndPerformDailyReset();
+            return;
+        }
+
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        const pad = (num) => String(num).padStart(2, '0');
+        document.getElementById("countdownClock").textContent = `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+    }
+
+    setInterval(updateResetCountdown, 1000);
+    updateResetCountdown();
+
+    // Get current date formatted for IST timezone
     function getTodayDateString() {
-        return new Date().toISOString().split('T')[0];
+        const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
+        const formatter = new Intl.DateTimeFormat('en-CA', options); // Returns YYYY-MM-DD
+        return formatter.format(new Date());
     }
 
     // Check submission restriction on load
@@ -296,7 +374,7 @@
         message.className = "message success";
     }
 
-    // Daily Reset Logic
+    // Daily Reset Logic (tied to Midnight IST)
     function checkAndPerformDailyReset() {
         const today = getTodayDateString();
         dateRef.get().then((snapshot) => {
@@ -306,7 +384,7 @@
                     if (storySnap.exists()) {
                         yesterdayStoryRef.set(storySnap.val());
                     }
-                    todayStoryRef.set("Submit words and trigger synthesis to read today's story...");
+                    todayStoryRef.set("Submit words to automatically generate today's story...");
                 });
                 wordsRef.remove();
                 dateRef.set(today);
@@ -353,7 +431,7 @@
         wordCount.textContent = wordPool.length;
     }
 
-    function submitWord() {
+    async function submitWord() {
         if (localStorage.getItem("horizon_submitted_today") === getTodayDateString()) {
             lockSubmissionUI();
             return;
@@ -382,10 +460,14 @@
             return;
         }
 
+        // Push new word to Firebase
         wordsRef.push(rawWord);
         
         localStorage.setItem("horizon_submitted_today", getTodayDateString());
         lockSubmissionUI();
+
+        // Automatically trigger story synthesis whenever a word is submitted
+        generateStory();
     }
 
     async function generateStory() {
@@ -431,7 +513,7 @@
     function clearPool() {
         wordsRef.remove();
         document.getElementById("statusMessage").textContent = "";
-        todayStoryRef.set("Submit words and trigger synthesis to read today's story...");
+        todayStoryRef.set("Submit words to automatically generate today's story...");
     }
 
     // --- KONAMI CODE & SECRET RESET BUTTON UNLOCK ---
