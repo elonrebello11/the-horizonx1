@@ -309,15 +309,10 @@
 
     // --- REAL-TIME COUNTDOWN TIMER (IST MIDNIGHT) ---
     function updateResetCountdown() {
-        // Current time in UTC
         const now = new Date();
-        
-        // Target time: Next midnight IST (UTC +5:30)
-        // Convert current UTC time to IST equivalent timestamp
         const istOffset = 5.5 * 60 * 60 * 1000;
         const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
 
-        // Midnight IST for today/tomorrow
         const istNextMidnight = new Date(istNow);
         istNextMidnight.setHours(24, 0, 0, 0);
 
