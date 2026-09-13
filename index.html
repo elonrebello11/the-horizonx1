@@ -256,295 +256,289 @@
 </div>
 
 <script>
-    // Firebase Config
-    const firebaseConfig = {
-        apiKey: "1:1018344856190:web:413a5e93c995734334162f",
-        authDomain: "project-horizon-fb3a0.firebaseapp.com",
-        databaseURL: "https://project-horizon-fb3a0-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "project-horizon-fb3a0",
-        storageBucket: "project-horizon-fb3a0.appspot.com",
-        messagingSenderId: "1018344856190",
-        appId: "1:1018344856190:web:413a5e93c995734334162f"
-    };
+   // Firebase Config
+const firebaseConfig = {
+    apiKey: "1:1018344856190:web:413a5e93c995734334162f",
+    authDomain: "project-horizon-fb3a0.firebaseapp.com",
+    databaseURL: "https://project-horizon-fb3a0-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "project-horizon-fb3a0",
+    storageBucket: "project-horizon-fb3a0.appspot.com",
+    messagingSenderId: "1018344856190",
+    appId: "1:1018344856190:web:413a5e93c995734334162f"
+};
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const wordsRef = db.ref("words");
-    const dateRef = db.ref("currentDate");
-    const todayStoryRef = db.ref("todayStory");
-    const yesterdayStoryRef = db.ref("yesterdayStory");
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const wordsRef = db.ref("words");
+const dateRef = db.ref("currentDate");
+const todayStoryRef = db.ref("todayStory");
+const yesterdayStoryRef = db.ref("yesterdayStory");
 
-    const profanityFilter = ["badword1", "badword2", "swear1", "swear2", "crap", "damn"];
-    let wordPool = [];
+const profanityFilter = ["badword1", "badword2", "swear1", "swear2", "crap", "damn"];
+let wordPool = [];
 
-    // Gemini API Key
-    const GEMINI_API_KEY = "AQ.Ab8RN6Kx8ce0EnB4T96nig7gWpljl3xinL33a6hUWm0FC263dQ"; 
+// Gemini Auth Key Configuration
+const GEMINI_AUTH_KEY = "AQ.Ab8RN6J4Jel5hY6J3zM6C7DgPKVQhqLLGPl14Z4st1ohHR4OYQ";
 
-    // --- MUSIC TOGGLE LOGIC ---
-    let isMusicPlaying = false;
-    const audio = document.getElementById("bgMusic");
-    const musicBtn = document.getElementById("musicToggleBtn");
-    const musicIcon = document.getElementById("musicIcon");
-    const musicStatus = document.getElementById("musicStatus");
+// --- MUSIC TOGGLE LOGIC ---
+let isMusicPlaying = false;
+const audio = document.getElementById("bgMusic");
+const musicBtn = document.getElementById("musicToggleBtn");
+const musicIcon = document.getElementById("musicIcon");
+const musicStatus = document.getElementById("musicStatus");
 
-    function toggleMusic() {
-        if (isMusicPlaying) {
-            audio.pause();
-            musicBtn.classList.remove("playing");
-            musicIcon.textContent = "🎵";
-            musicStatus.textContent = "Music: OFF";
-            isMusicPlaying = false;
-        } else {
-            audio.play().then(() => {
-                musicBtn.classList.add("playing");
-                musicIcon.textContent = "🎶";
-                musicStatus.textContent = "Music: ON";
-                isMusicPlaying = true;
-            }).catch(err => {
-                console.error("Audio play failed:", err);
-            });
-        }
-    }
-
-    // --- REAL-TIME COUNTDOWN TIMER (IST MIDNIGHT) ---
-    function updateResetCountdown() {
-        const now = new Date();
-        const istOffset = 5.5 * 60 * 60 * 1000;
-        const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
-
-        const istNextMidnight = new Date(istNow);
-        istNextMidnight.setHours(24, 0, 0, 0);
-
-        const diff = istNextMidnight - istNow;
-
-        if (diff <= 0) {
-            checkAndPerformDailyReset();
-            return;
-        }
-
-        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-        const seconds = Math.floor((diff / 1000) % 60);
-
-        const pad = (num) => String(num).padStart(2, '0');
-        document.getElementById("countdownClock").textContent = `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
-    }
-
-    setInterval(updateResetCountdown, 1000);
-    updateResetCountdown();
-
-    // Get current date formatted for IST timezone
-    function getTodayDateString() {
-        const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
-        const formatter = new Intl.DateTimeFormat('en-CA', options); // Returns YYYY-MM-DD
-        return formatter.format(new Date());
-    }
-
-    // Check submission restriction on load
-    document.addEventListener("DOMContentLoaded", () => {
-        checkSubmissionStatus();
-    });
-
-    function checkSubmissionStatus() {
-        const hasSubmitted = localStorage.getItem("horizon_submitted_today");
-        const today = getTodayDateString();
-
-        if (hasSubmitted && hasSubmitted !== today) {
-            localStorage.removeItem("horizon_submitted_today");
-        } else if (hasSubmitted === today) {
-            lockSubmissionUI();
-        }
-    }
-
-    function lockSubmissionUI() {
-        const input = document.getElementById("wordInput");
-        const submitBtn = document.getElementById("submitBtn");
-        const message = document.getElementById("statusMessage");
-
-        input.value = "";
-        input.disabled = true;
-        submitBtn.disabled = true;
-        message.textContent = "You have already submitted a word for today! Come back tomorrow.";
-        message.className = "message success";
-    }
-
-    // Daily Reset Logic (tied to Midnight IST)
-    function checkAndPerformDailyReset() {
-        const today = getTodayDateString();
-        dateRef.get().then((snapshot) => {
-            const savedDate = snapshot.val();
-            if (savedDate && savedDate !== today) {
-                todayStoryRef.get().then((storySnap) => {
-                    if (storySnap.exists()) {
-                        yesterdayStoryRef.set(storySnap.val());
-                    }
-                    todayStoryRef.set("Submit words to automatically generate today's story...");
-                });
-                wordsRef.remove();
-                dateRef.set(today);
-            } else if (!savedDate) {
-                dateRef.set(today);
-            }
+function toggleMusic() {
+    if (isMusicPlaying) {
+        audio.pause();
+        musicBtn.classList.remove("playing");
+        musicIcon.textContent = "🎵";
+        musicStatus.textContent = "Music: OFF";
+        isMusicPlaying = false;
+    } else {
+        audio.play().then(() => {
+            musicBtn.classList.add("playing");
+            musicIcon.textContent = "🎶";
+            musicStatus.textContent = "Music: ON";
+            isMusicPlaying = true;
+        }).catch(err => {
+            console.error("Audio play failed:", err);
         });
     }
+}
 
-    checkAndPerformDailyReset();
+// --- REAL-TIME COUNTDOWN TIMER (IST MIDNIGHT) ---
+function updateResetCountdown() {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
 
-    // Firebase listeners
-    wordsRef.on("value", (snapshot) => {
+    const istNextMidnight = new Date(istNow);
+    istNextMidnight.setHours(24, 0, 0, 0);
+
+    const diff = istNextMidnight - istNow;
+
+    if (diff <= 0) {
         checkAndPerformDailyReset();
-        const data = snapshot.val();
-        wordPool = data ? Object.values(data) : [];
-        updateUI();
-    });
+        return;
+    }
 
-    todayStoryRef.on("value", (snapshot) => {
-        if (snapshot.exists()) {
-            document.getElementById("storyOutput").textContent = snapshot.val();
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    const pad = (num) => String(num).padStart(2, '0');
+    document.getElementById("countdownClock").textContent = `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+}
+
+setInterval(updateResetCountdown, 1000);
+updateResetCountdown();
+
+function getTodayDateString() {
+    const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
+    const formatter = new Intl.DateTimeFormat('en-CA', options);
+    return formatter.format(new Date());
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    checkSubmissionStatus();
+});
+
+function checkSubmissionStatus() {
+    const hasSubmitted = localStorage.getItem("horizon_submitted_today");
+    const today = getTodayDateString();
+
+    if (hasSubmitted && hasSubmitted !== today) {
+        localStorage.removeItem("horizon_submitted_today");
+    } else if (hasSubmitted === today) {
+        lockSubmissionUI();
+    }
+}
+
+function lockSubmissionUI() {
+    const input = document.getElementById("wordInput");
+    const submitBtn = document.getElementById("submitBtn");
+    const message = document.getElementById("statusMessage");
+
+    input.value = "";
+    input.disabled = true;
+    submitBtn.disabled = true;
+    message.textContent = "You have already submitted a word for today! Come back tomorrow.";
+    message.className = "message success";
+}
+
+function checkAndPerformDailyReset() {
+    const today = getTodayDateString();
+    dateRef.get().then((snapshot) => {
+        const savedDate = snapshot.val();
+        if (savedDate && savedDate !== today) {
+            todayStoryRef.get().then((storySnap) => {
+                if (storySnap.exists()) {
+                    yesterdayStoryRef.set(storySnap.val());
+                }
+                todayStoryRef.set("Submit words to automatically generate today's story...");
+            });
+            wordsRef.remove();
+            dateRef.set(today);
+        } else if (!savedDate) {
+            dateRef.set(today);
         }
     });
+}
 
-    yesterdayStoryRef.on("value", (snapshot) => {
-        if (snapshot.exists()) {
-            document.getElementById("yesterdayStoryOutput").textContent = snapshot.val();
-        }
+checkAndPerformDailyReset();
+
+wordsRef.on("value", (snapshot) => {
+    checkAndPerformDailyReset();
+    const data = snapshot.val();
+    wordPool = data ? Object.values(data) : [];
+    updateUI();
+});
+
+todayStoryRef.on("value", (snapshot) => {
+    if (snapshot.exists()) {
+        document.getElementById("storyOutput").textContent = snapshot.val();
+    }
+});
+
+yesterdayStoryRef.on("value", (snapshot) => {
+    if (snapshot.exists()) {
+        document.getElementById("yesterdayStoryOutput").textContent = snapshot.val();
+    }
+});
+
+function updateUI() {
+    const wordBank = document.getElementById("wordBank");
+    const wordCount = document.getElementById("wordCount");
+    wordBank.innerHTML = "";
+    
+    wordPool.forEach(word => {
+        const tag = document.createElement("span");
+        tag.className = "word-tag";
+        tag.textContent = word;
+        wordBank.appendChild(tag);
     });
 
-    function updateUI() {
-        const wordBank = document.getElementById("wordBank");
-        const wordCount = document.getElementById("wordCount");
-        wordBank.innerHTML = "";
-        
-        wordPool.forEach(word => {
-            const tag = document.createElement("span");
-            tag.className = "word-tag";
-            tag.textContent = word;
-            wordBank.appendChild(tag);
+    wordCount.textContent = wordPool.length;
+}
+
+async function submitWord() {
+    if (localStorage.getItem("horizon_submitted_today") === getTodayDateString()) {
+        lockSubmissionUI();
+        return;
+    }
+
+    const input = document.getElementById("wordInput");
+    const message = document.getElementById("statusMessage");
+    const rawWord = input.value.trim().toLowerCase();
+
+    if (!rawWord) {
+        message.textContent = "Please enter a word.";
+        message.className = "message error";
+        return;
+    }
+
+    if (rawWord.includes(" ") || rawWord.split(/\s+/).length > 1) {
+        message.textContent = "Error: Only single words are allowed!";
+        message.className = "message error";
+        return;
+    }
+
+    if (profanityFilter.includes(rawWord)) {
+        message.textContent = "Blocked: Word flagged by the safety filter.";
+        message.className = "message error";
+        input.value = "";
+        return;
+    }
+
+    wordsRef.push(rawWord);
+    localStorage.setItem("horizon_submitted_today", getTodayDateString());
+    lockSubmissionUI();
+
+    generateStory();
+}
+
+async function generateStory() {
+    const output = document.getElementById("storyOutput");
+
+    if (!wordPool || wordPool.length === 0) {
+        output.textContent = "The word pool is empty! Add a word first.";
+        return;
+    }
+
+    output.textContent = "Synthesizing story via AI engine...";
+
+    const prompt = `Write a creative short story using all of the following community words: ${wordPool.join(", ")}. Keep it engaging and 3-4 paragraphs long.`;
+
+    try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${GEMINI_AUTH_KEY}`
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }]
+            })
         });
 
-        wordCount.textContent = wordPool.length;
-    }
+        const data = await response.json();
 
-    async function submitWord() {
-        if (localStorage.getItem("horizon_submitted_today") === getTodayDateString()) {
-            lockSubmissionUI();
+        if (!response.ok) {
+            console.error("Gemini Error Details:", data);
+            output.textContent = `API Request Failed (${response.status}): ${data.error?.message || "Check key or permissions."}`;
             return;
         }
 
-        const input = document.getElementById("wordInput");
-        const message = document.getElementById("statusMessage");
-        const rawWord = input.value.trim().toLowerCase();
-
-        if (!rawWord) {
-            message.textContent = "Please enter a word.";
-            message.className = "message error";
-            return;
-        }
-
-        if (rawWord.includes(" ") || rawWord.split(/\s+/).length > 1) {
-            message.textContent = "Error: Only single words are allowed!";
-            message.className = "message error";
-            return;
-        }
-
-        if (profanityFilter.includes(rawWord)) {
-            message.textContent = "Blocked: Word flagged by the safety filter.";
-            message.className = "message error";
-            input.value = "";
-            return;
-        }
-
-        // Push new word to Firebase
-        wordsRef.push(rawWord);
-        
-        localStorage.setItem("horizon_submitted_today", getTodayDateString());
-        lockSubmissionUI();
-
-        // Automatically trigger story synthesis whenever a word is submitted
-        generateStory();
-    }
-
-    async function generateStory() {
-        const output = document.getElementById("storyOutput");
-
-        if (wordPool.length === 0) {
-            output.textContent = "The word pool is empty! Add a few words first.";
-            return;
-        }
-
-        output.textContent = "Synthesizing story via AI engine...";
-
-        const prompt = `Write a creative short story using all of the following community words: ${wordPool.join(", ")}. Make it flow well and keep it around 3-4 paragraphs.`;
-
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }]
-                })
-            });
-
-            const data = await response.json();
-            
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
-                const storyText = data.candidates[0].content.parts[0].text;
-                output.textContent = storyText;
-                todayStoryRef.set(storyText);
-            } else {
-                output.textContent = "Failed to generate story. Check API key or console for details.";
-            }
-        } catch (error) {
-            console.error("API Error:", error);
-            output.textContent = "An error occurred while connecting to the AI API.";
-        }
-    }
-
-    function clearPool() {
-        wordsRef.remove();
-        document.getElementById("statusMessage").textContent = "";
-        todayStoryRef.set("Submit words to automatically generate today's story...");
-    }
-
-    // --- KONAMI CODE & SECRET RESET BUTTON UNLOCK ---
-    const konamiCode = [
-        "ArrowUp", "ArrowUp", 
-        "ArrowDown", "ArrowDown", 
-        "ArrowLeft", "ArrowRight", 
-        "ArrowLeft", "ArrowRight", 
-        "b", "a"
-    ];
-    let konamiIndex = 0;
-
-    document.addEventListener("keydown", (e) => {
-        const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-        const expectedKey = konamiCode[konamiIndex].length === 1 ? konamiCode[konamiIndex].toLowerCase() : konamiCode[konamiIndex];
-
-        if (key === expectedKey) {
-            konamiIndex++;
-            if (konamiIndex === konamiCode.length) {
-                konamiIndex = 0;
-                promptSecretPassword();
-            }
+        const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (generatedText) {
+            output.textContent = generatedText;
+            todayStoryRef.set(generatedText);
         } else {
-            konamiIndex = 0;
+            output.textContent = "Response received, but text generation was empty.";
         }
-    });
-
-    function promptSecretPassword() {
-        const password = prompt("Enter Secret Admin Password:");
-        if (password === "hello1234@#$") {
-            alert("Access Granted! Reset Pool button is now visible.");
-            document.getElementById("resetBtn").style.display = "inline-block";
-        } else if (password !== null) {
-            alert("Access Denied! Incorrect Password.");
-        }
+    } catch (error) {
+        console.error("Network/Fetch Exception:", error);
+        output.textContent = "Failed to connect to Gemini API. Check console (F12) for network errors.";
     }
+}
+
+function clearPool() {
+    wordsRef.remove();
+    document.getElementById("statusMessage").textContent = "";
+    todayStoryRef.set("Submit words to automatically generate today's story...");
+}
+
+// Konami Code Unlock
+const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+let konamiIndex = 0;
+
+document.addEventListener("keydown", (e) => {
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const expectedKey = konamiCode[konamiIndex].length === 1 ? konamiCode[konamiIndex].toLowerCase() : konamiCode[konamiIndex];
+
+    if (key === expectedKey) {
+        konamiIndex++;
+        if (konamiIndex === konamiCode.length) {
+            konamiIndex = 0;
+            promptSecretPassword();
+        }
+    } else {
+        konamiIndex = 0;
+    }
+});
+
+function promptSecretPassword() {
+    const password = prompt("Enter Secret Admin Password:");
+    if (password === "hello1234@#$") {
+        alert("Access Granted! Reset Pool button is now visible.");
+        document.getElementById("resetBtn").style.display = "inline-block";
+    } else if (password !== null) {
+        alert("Access Denied! Incorrect Password.");
+    }
+}
 </script>   
 
 </body>
