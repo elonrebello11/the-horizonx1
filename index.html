@@ -215,6 +215,30 @@ footer {
     font-size: 13px;
 }
 
+
+/* ANDROID APP INSTALL */
+.app-install {
+    text-align: center;
+}
+.app-install p {
+    color: #94a3b8;
+    line-height: 1.6;
+}
+.app-qr {
+    display: block;
+    width: min(220px, 75vw);
+    height: auto;
+    margin: 18px auto 10px;
+    padding: 10px;
+    background: #ffffff;
+    border-radius: 12px;
+}
+.app-name {
+    color: #60a5fa;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
 @media (max-width: 500px) {
     header h1 { font-size: 22px; }
     main { padding: 18px 12px; }
@@ -300,6 +324,14 @@ footer {
         <h2>📡 Device Information</h2>
         <p class="info" id="deviceStatus">Waiting for ESP32...</p>
         <p class="info" id="sensorUpdated">Last sensor update: --</p>
+    </div>
+
+
+    <div class="section app-install">
+        <h2>📱 Install Our Android App</h2>
+        <p>Scan this QR code with your Android phone to open the app page and install it.</p>
+        <img class="app-qr" src="data:image/png;base64,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" alt="QR code to install ESP 32 SYSTEM KILLER">
+        <p class="app-name">ESP 32 SYSTEM KILLER</p>
     </div>
 
 </main>
