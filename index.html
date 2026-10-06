@@ -3,573 +3,2592 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#101827">
-<title>Smart Weather Station</title>
+<meta name="theme-color" content="#06111f">
+<meta name="description" content="Team Aqua Smart Weather Station — ESP32, Firebase and Open-Meteo">
+<title>Team Aqua • Smart Weather Station</title>
 
 <style>
-* {
-    box-sizing: border-box;
+:root{
+  --bg:#040a13;
+  --panel:rgba(12,24,41,.78);
+  --line:rgba(148,163,184,.16);
+  --text:#f5f9ff;
+  --muted:#91a5bc;
+  --blue:#54b8ff;
+  --cyan:#42dfd0;
+  --green:#5ee7a0;
+  --yellow:#ffd166;
+  --purple:#b197fc;
+  --red:#ff7185;
+  --shadow:0 24px 80px rgba(0,0,0,.34);
 }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0b1120;
-    color: #f8fafc;
+*{box-sizing:border-box}
+
+html{
+  scroll-behavior:smooth;
 }
 
-/* OPENING ANIMATION */
-
-#splash {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: #0b1120;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 0.8s ease, visibility 0.8s ease;
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  background:
+    radial-gradient(circle at 8% 5%,rgba(84,184,255,.14),transparent 28%),
+    radial-gradient(circle at 92% 18%,rgba(66,223,208,.10),transparent 27%),
+    linear-gradient(180deg,#06111f,#040a13 65%,#02060c);
+  overflow-x:hidden;
 }
 
-#splash.hide {
-    opacity: 0;
-    visibility: hidden;
+body:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.35;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:linear-gradient(to bottom,#000,transparent 78%);
 }
 
-.splash-icon {
-    font-size: 75px;
-    animation: float 2s ease-in-out infinite;
+button,input{
+  font:inherit;
 }
 
-#splash h1 {
-    color: #60a5fa;
-    font-size: 28px;
-    animation: fadeIn 1.2s ease;
+button{
+  cursor:pointer;
 }
 
-.loader {
-    width: 150px;
-    height: 5px;
-    background: #26344d;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 20px;
+/* SPLASH */
+
+#splash{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  display:grid;
+  place-items:center;
+  background:#040a13;
+  transition:.7s ease;
 }
 
-.loader::after {
-    content: "";
-    display: block;
-    width: 40%;
-    height: 100%;
-    background: #60a5fa;
-    border-radius: 10px;
-    animation: loading 1.5s infinite;
+#splash.hide{
+  opacity:0;
+  visibility:hidden;
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
+.splash{
+  text-align:center;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+.orb{
+  width:96px;
+  height:96px;
+  margin:auto;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:42px;
+  border:1px solid rgba(84,184,255,.35);
+  background:radial-gradient(circle,rgba(84,184,255,.24),transparent 68%);
+  box-shadow:0 0 70px rgba(84,184,255,.2);
+  animation:pulse 1.7s ease-in-out infinite;
 }
 
-@keyframes loading {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(350%); }
+.splash h1{
+  margin:22px 0 7px;
+  font-size:30px;
+}
+
+.splash p{
+  margin:0;
+  color:var(--muted);
+}
+
+.loader{
+  width:190px;
+  height:4px;
+  margin:20px auto 0;
+  background:#17283d;
+  border-radius:99px;
+  overflow:hidden;
+}
+
+.loader span{
+  display:block;
+  width:45%;
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  animation:load 1.4s infinite;
+}
+
+@keyframes load{
+  from{transform:translateX(-130%)}
+  to{transform:translateX(330%)}
+}
+
+@keyframes pulse{
+  50%{
+    transform:scale(1.06);
+    box-shadow:0 0 90px rgba(66,223,208,.22);
+  }
 }
 
 /* HEADER */
 
-header {
-    background: #111c32;
-    padding: 22px;
-    text-align: center;
-    border-bottom: 1px solid #26344d;
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:13px clamp(15px,4vw,48px);
+  background:rgba(4,10,19,.74);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);
 }
 
-header h1 {
-    margin: 0;
-    color: #60a5fa;
-    font-size: 26px;
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-decoration:none;
+  color:var(--text);
 }
 
-header p {
-    color: #94a3b8;
-    margin-bottom: 0;
+.brand-mark{
+  width:43px;
+  height:43px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(
+    135deg,
+    rgba(84,184,255,.20),
+    rgba(66,223,208,.13)
+  );
+  border:1px solid rgba(84,184,255,.24);
+  font-size:22px;
+}
+
+.brand strong{
+  display:block;
+  font-size:15px;
+  letter-spacing:.04em;
+}
+
+.brand small{
+  display:block;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.live-chip{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#a8d9ff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+
+.live-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 14px var(--green);
+}
+
+.menu-btn{
+  width:45px;
+  height:45px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  display:grid;
+  place-items:center;
+}
+
+.menu-lines{
+  width:20px;
+}
+
+.menu-lines span{
+  height:2px;
+  display:block;
+  margin:4px 0;
+  background:#fff;
+  border-radius:9px;
+}
+
+/* DRAWER */
+
+.drawer{
+  position:fixed;
+  top:0;
+  right:0;
+  z-index:3000;
+  width:min(360px,92vw);
+  height:100vh;
+  padding:22px;
+  background:rgba(5,15,28,.97);
+  backdrop-filter:blur(22px);
+  border-left:1px solid var(--line);
+  transform:translateX(105%);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  box-shadow:-30px 0 80px #0008;
+}
+
+.drawer.open{
+  transform:translateX(0);
+}
+
+.drawer-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.drawer h2{
+  margin:0;
+}
+
+.close{
+  border:0;
+  background:transparent;
+  color:#9fb2c8;
+  font-size:29px;
+}
+
+.nav{
+  display:grid;
+  gap:10px;
+  margin-top:28px;
+}
+
+.nav button{
+  text-align:left;
+  padding:14px 15px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:rgba(255,255,255,.035);
+  color:#eaf4ff;
+  transition:.2s;
+}
+
+.nav button:hover{
+  transform:translateX(3px);
+  border-color:#54b8ff66;
+}
+
+.drawer-note{
+  margin-top:26px;
+  padding:15px;
+  border-radius:16px;
+  line-height:1.6;
+  background:rgba(66,223,208,.06);
+  border:1px solid rgba(66,223,208,.13);
+  color:var(--muted);
+  font-size:13px;
+}
+
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:2500;
+  background:#0008;
+  opacity:0;
+  visibility:hidden;
+  transition:.3s;
+}
+
+.overlay.open{
+  opacity:1;
+  visibility:visible;
 }
 
 /* MAIN */
 
-main {
-    max-width: 1100px;
-    margin: auto;
-    padding: 25px 18px;
+main{
+  width:min(1180px,calc(100% - 28px));
+  margin:auto;
+  padding:34px 0 70px;
 }
 
-.status {
-    padding: 13px;
-    background: #1e293b;
-    border-radius: 12px;
-    text-align: center;
-    margin-bottom: 20px;
-    color: #fbbf24;
+.hero{
+  display:grid;
+  grid-template-columns:1.35fr .65fr;
+  gap:18px;
 }
 
-.location {
-    color: #94a3b8;
-    text-align: center;
-    margin-bottom: 25px;
+.surface{
+  background:linear-gradient(
+    145deg,
+    rgba(15,31,52,.84),
+    rgba(8,18,31,.78)
+  );
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(14px);
+}
+
+.hero-card{
+  position:relative;
+  overflow:hidden;
+  border-radius:31px;
+  padding:clamp(25px,5vw,52px);
+}
+
+.hero-card:after{
+  content:"";
+  position:absolute;
+  width:300px;
+  height:300px;
+  right:-100px;
+  top:-130px;
+  background:radial-gradient(
+    circle,
+    rgba(84,184,255,.22),
+    transparent 68%
+  );
+}
+
+.eyebrow{
+  color:var(--cyan);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.17em;
+}
+
+.hero h1{
+  position:relative;
+  z-index:1;
+  font-size:clamp(40px,7vw,74px);
+  line-height:.98;
+  margin:14px 0 18px;
+}
+
+.hero h1 span{
+  background:linear-gradient(
+    90deg,
+    #fff,
+    var(--blue),
+    var(--cyan)
+  );
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+
+.hero p{
+  max-width:700px;
+  color:var(--muted);
+  line-height:1.75;
+  font-size:16px;
+}
+
+.hero-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:26px;
+}
+
+.primary,
+.secondary{
+  border-radius:14px;
+  padding:12px 17px;
+  color:#fff;
+  border:1px solid transparent;
+  transition:.2s;
+}
+
+.primary{
+  background:linear-gradient(135deg,#1976d2,#20a9a0);
+}
+
+.secondary{
+  background:#ffffff08;
+  border-color:var(--line);
+}
+
+.primary:hover,
+.secondary:hover{
+  transform:translateY(-2px);
+}
+
+.mini-stack{
+  display:grid;
+  gap:18px;
+}
+
+.mini{
+  border-radius:23px;
+  padding:22px;
+}
+
+.mini-value{
+  font-size:31px;
+  font-weight:850;
+  margin-top:8px;
+}
+
+.mini-sub{
+  font-size:13px;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.status{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:18px 0;
+  padding:13px 15px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#ffffff06;
+  color:#dbe9f7;
+}
+
+.status-dot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--yellow);
+}
+
+.status.ok .status-dot{
+  background:var(--green);
+  box-shadow:0 0 13px var(--green);
+}
+
+.status.bad .status-dot{
+  background:var(--red);
+  box-shadow:0 0 13px var(--red);
+}
+
+.welcome{
+  margin:18px 0;
+  padding:18px 20px;
+  border-radius:20px;
+  background:linear-gradient(
+    135deg,
+    rgba(84,184,255,.10),
+    rgba(66,223,208,.06)
+  );
+  border:1px solid rgba(84,184,255,.18);
+}
+
+.welcome strong{
+  font-size:18px;
+}
+
+.welcome p{
+  margin:6px 0 0;
+  color:var(--muted);
+  line-height:1.6;
 }
 
 /* WEATHER CARDS */
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 18px;
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
 }
 
-.card {
-    background: #17243a;
-    border: 1px solid #293953;
-    border-radius: 18px;
-    padding: 25px 18px;
-    text-align: center;
-    transition: transform 0.2s, border-color 0.2s;
+.card{
+  border-radius:22px;
+  padding:21px;
+  transition:.25s;
 }
 
-.card:hover {
-    transform: translateY(-4px);
-    border-color: #60a5fa;
+.card:hover{
+  transform:translateY(-4px);
+  border-color:#54b8ff4d;
 }
 
-.icon {
-    font-size: 38px;
+.card-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-.label {
-    color: #cbd5e1;
-    margin-top: 12px;
-    font-size: 16px;
+.icon{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:#ffffff08;
+  font-size:22px;
 }
 
-.value {
-    font-size: 40px;
-    font-weight: bold;
-    margin: 18px 0;
-    overflow-wrap: anywhere;
+.badge{
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:.08em;
 }
 
-.unit {
-    font-size: 18px;
+.label{
+  margin-top:19px;
+  color:#c8d7e7;
+  font-size:14px;
 }
 
-.temperature { color: #fbbf24; }
-.humidity { color: #38bdf8; }
-.wind { color: #a78bfa; }
-.pressure { color: #34d399; }
+.value{
+  font-size:clamp(29px,4vw,41px);
+  font-weight:900;
+  margin:7px 0 5px;
+}
+
+.unit{
+  font-size:14px;
+  color:var(--muted);
+  font-weight:650;
+}
+
+.temp{color:var(--yellow)}
+.humid{color:var(--blue)}
+.wind{color:var(--purple)}
+.pressure{color:var(--green)}
+
+.muted{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.65;
+}
 
 /* SECTIONS */
 
-.section {
-    background: #17243a;
-    border: 1px solid #293953;
-    border-radius: 18px;
-    padding: 22px;
-    margin-top: 25px;
+.section{
+  border-radius:23px;
+  padding:23px;
+  margin-top:17px;
 }
 
-.section h2 {
-    margin-top: 0;
-    font-size: 20px;
+.section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
 }
 
-.info {
-    color: #94a3b8;
-    line-height: 1.8;
+.section h2{
+  margin:0;
+  font-size:20px;
 }
 
-button {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 15px;
-    margin-top: 10px;
+.pill{
+  padding:7px 10px;
+  border-radius:999px;
+  background:#54b8ff12;
+  border:1px solid #54b8ff22;
+  color:#9bd6ff;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.06em;
 }
 
-button:hover {
-    background: #1d4ed8;
+.location{
+  color:var(--muted);
+  margin:12px 0 0;
 }
 
-footer {
-    text-align: center;
-    color: #64748b;
-    padding: 30px 10px;
-    font-size: 13px;
+.data-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:11px;
+  margin-top:15px;
 }
 
-
-/* ANDROID APP INSTALL */
-.app-install {
-    text-align: center;
-}
-.app-install p {
-    color: #94a3b8;
-    line-height: 1.6;
-}
-.app-qr {
-    display: block;
-    width: min(220px, 75vw);
-    height: auto;
-    margin: 18px auto 10px;
-    padding: 10px;
-    background: #ffffff;
-    border-radius: 12px;
-}
-.app-name {
-    color: #60a5fa;
-    font-weight: bold;
-    margin-top: 8px;
+.data-box{
+  padding:15px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#ffffff04;
 }
 
-@media (max-width: 500px) {
-    header h1 { font-size: 22px; }
-    main { padding: 18px 12px; }
-    .value { font-size: 36px; }
+.data-box strong{
+  display:block;
+  margin-top:4px;
+}
+
+/* MUSIC */
+
+.music-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.music-title{
+  font-size:18px;
+  font-weight:800;
+}
+
+.music-meta{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:5px;
+}
+
+.auto-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
+
+.eq{
+  display:flex;
+  align-items:end;
+  gap:3px;
+  height:22px;
+}
+
+.eq i{
+  width:3px;
+  border-radius:4px;
+  background:linear-gradient(var(--blue),var(--cyan));
+  animation:eq 1s ease-in-out infinite;
+}
+
+.eq i:nth-child(1){
+  height:8px;
+}
+
+.eq i:nth-child(2){
+  height:18px;
+  animation-delay:.15s;
+}
+
+.eq i:nth-child(3){
+  height:12px;
+  animation-delay:.3s;
+}
+
+.eq i:nth-child(4){
+  height:20px;
+  animation-delay:.1s;
+}
+
+@keyframes eq{
+  50%{transform:scaleY(.45)}
+}
+
+/* APP */
+
+.app-grid{
+  display:grid;
+  grid-template-columns:1fr 220px;
+  gap:22px;
+  align-items:center;
+}
+
+.app-qr{
+  width:min(220px,70vw);
+  display:block;
+  margin:auto;
+  padding:10px;
+  background:#fff;
+  border-radius:16px;
+}
+
+.app-name{
+  color:#8bd5ff;
+  font-weight:900;
+}
+
+footer{
+  text-align:center;
+  color:#61758e;
+  padding:28px 15px;
+  font-size:12px;
+}
+
+footer b{
+  color:#a1b4c8;
+}
+
+/* DEVELOPER PANEL */
+
+.dev-panel{
+  position:fixed;
+  inset:0;
+  z-index:4000;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:#000b;
+  backdrop-filter:blur(12px);
+  opacity:0;
+  visibility:hidden;
+  transition:.25s;
+}
+
+.dev-panel.open{
+  opacity:1;
+  visibility:visible;
+}
+
+.dev-box{
+  width:min(620px,100%);
+  max-height:90vh;
+  overflow:auto;
+  padding:24px;
+  background:#081423;
+  border:1px solid #54b8ff44;
+  border-radius:25px;
+  box-shadow:0 30px 100px #000;
+}
+
+.dev-box h2{
+  margin:0 0 8px;
+}
+
+.dev-help{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
+}
+
+.dev-form{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+
+.dev-form input{
+  width:100%;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#06101c;
+  color:#fff;
+  outline:none;
+}
+
+.dev-form input:focus{
+  border-color:#54b8ff88;
+}
+
+.dev-actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+}
+
+.dev-output{
+  margin-top:15px;
+  min-height:90px;
+  padding:14px;
+  border-radius:15px;
+  background:#030912;
+  border:1px solid var(--line);
+  font:12px ui-monospace,monospace;
+  white-space:pre-wrap;
+  color:#a9c5de;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:900px){
+
+  .hero{
+    grid-template-columns:1fr;
+  }
+
+  .cards{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media(max-width:600px){
+
+  main{
+    width:calc(100% - 20px);
+    padding-top:20px;
+  }
+
+  .brand small{
+    display:none;
+  }
+
+  .live-chip{
+    display:none;
+  }
+
+  .hero-card{
+    padding:25px;
+    border-radius:25px;
+  }
+
+  .hero h1{
+    font-size:43px;
+  }
+
+  .cards{
+    gap:10px;
+  }
+
+  .card{
+    padding:16px;
+    border-radius:18px;
+  }
+
+  .value{
+    font-size:30px;
+  }
+
+  .data-row,
+  .app-grid{
+    grid-template-columns:1fr;
+  }
+
+  .music-card{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+@media(max-width:390px){
+
+  .cards{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+
+  *,
+  *:before,
+  *:after{
+    scroll-behavior:auto!important;
+    animation-duration:.001ms!important;
+    transition-duration:.001ms!important;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<!-- OPENING SCREEN -->
+<!-- SPLASH SCREEN -->
+
 <div id="splash">
-    <div class="splash-icon">🌤️</div>
-    <h1>Smart Weather Station</h1>
-    <p class="info">Loading your weather...</p>
-    <div class="loader"></div>
+
+  <div class="splash">
+
+    <div class="orb">
+      🌦️
+    </div>
+
+    <h1>Team Aqua</h1>
+
+    <p>
+      Initializing Smart Weather Station...
+    </p>
+
+    <div class="loader">
+      <span></span>
+    </div>
+
+  </div>
+
 </div>
 
-<header>
-    <h1>🌤️ Smart Weather Station</h1>
-    <p>Live environmental monitoring</p>
+
+<!-- HEADER -->
+
+<header class="topbar">
+
+  <a class="brand" href="#dashboard">
+
+    <div class="brand-mark">
+      🌤️
+    </div>
+
+    <div>
+      <strong>TEAM AQUA</strong>
+      <small>Smart Weather Station</small>
+    </div>
+
+  </a>
+
+  <div class="live-chip">
+    <span class="live-dot"></span>
+    LIVE SYSTEM
+  </div>
+
+  <button
+    class="menu-btn"
+    id="menuButton"
+    aria-label="Open menu"
+  >
+
+    <span class="menu-lines">
+
+      <span></span>
+      <span></span>
+      <span></span>
+
+    </span>
+
+  </button>
+
 </header>
 
-<main>
 
-    <div class="status" id="firebaseStatus">
-        🟡 Connecting to your ESP32...
+<!-- MENU -->
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="drawer" id="drawer">
+
+  <div class="drawer-head">
+
+    <h2>Aqua Menu</h2>
+
+    <button
+      class="close"
+      id="closeDrawer"
+    >
+      ×
+    </button>
+
+  </div>
+
+
+  <div class="nav">
+
+    <button data-target="dashboard">
+      📊 Dashboard
+    </button>
+
+    <button data-target="weather">
+      ☁️ Online Weather
+    </button>
+
+    <button data-target="music">
+      🎵 Automatic Radio
+    </button>
+
+    <button data-target="app">
+      📱 Android App
+    </button>
+
+    <button
+      id="devMenu"
+      style="display:none"
+    >
+      🛠️ Developer Panel
+    </button>
+
+  </div>
+
+
+  <div class="drawer-note">
+
+    <b>Team Aqua ecosystem</b>
+
+    <br>
+
+    ESP32 + DHT22
+    →
+    Firebase Realtime Database
+    →
+    Smart Weather Station website
+    →
+    Median Android app.
+
+  </div>
+
+</aside>
+
+
+<!-- MAIN -->
+
+<main id="dashboard">
+
+
+  <!-- HERO -->
+
+  <section class="hero">
+
+    <div class="hero-card surface">
+
+      <div class="eyebrow">
+        TEAM AQUA • IOT WEATHER SYSTEM
+      </div>
+
+      <h1>
+        Weather data,
+        <span>beautifully connected.</span>
+      </h1>
+
+      <p>
+        The Team Aqua Smart Weather Station combines live
+        local sensor readings from the ESP32 with online
+        wind speed, wind direction and air pressure from
+        Open-Meteo.This system is designed by Team Killer.
+        See below for credits and info. 
+      </p>
+
+
+      <div class="hero-actions">
+
+        <button
+          class="primary"
+          id="refreshButton"
+        >
+          ↻ Refresh weather
+        </button>
+
+        <button
+          class="secondary"
+          id="locationButton"
+        >
+          📍 Use my location
+        </button>
+
+      </div>
+
     </div>
 
-    <div class="location" id="location">
-        📍 Detecting your location...
-    </div>
 
-    <div class="grid">
+    <div class="mini-stack">
 
-        <div class="card">
-            <div class="icon">🌡️</div>
-            <div class="label">Temperature</div>
-            <div class="value temperature" id="temperature">
-                -- <span class="unit">°C</span>
-            </div>
-            <div class="info">ESP32 sensor</div>
+      <div class="mini surface">
+
+        <div class="eyebrow">
+          ESP32 LINK
         </div>
 
-        <div class="card">
-            <div class="icon">💧</div>
-            <div class="label">Humidity</div>
-            <div class="value humidity" id="humidity">
-                -- <span class="unit">%</span>
-            </div>
-            <div class="info">ESP32 sensor</div>
+        <div
+          class="mini-value"
+          id="sensorState"
+        >
+          WAITING
         </div>
 
-        <div class="card">
-            <div class="icon">💨</div>
-            <div class="label">Wind Speed</div>
-            <div class="value wind" id="wind">
-                -- <span class="unit">km/h</span>
-            </div>
-            <div class="info">Online weather data</div>
+        <div class="mini-sub">
+          Firebase Realtime Database
         </div>
 
-        <div class="card">
-            <div class="icon">🌬️</div>
-            <div class="label">Air Pressure</div>
-            <div class="value pressure" id="pressure">
-                -- <span class="unit">hPa</span>
-            </div>
-            <div class="info">Online weather data</div>
+      </div>
+
+
+      <div class="mini surface">
+
+        <div class="eyebrow">
+          CURRENT LOCATION
         </div>
 
+        <div class="mini-value">
+          📍
+        </div>
+
+        <div
+          class="mini-sub"
+          id="location"
+        >
+          Detecting location...
+        </div>
+
+      </div>
+
     </div>
 
-    <div class="section">
-        <h2>☁️ Current Weather</h2>
-        <p class="info" id="condition">Waiting for weather data...</p>
-        <p class="info" id="windDirection">Wind direction: --</p>
-        <p class="info" id="weatherUpdated">Last weather update: --</p>
-        <button id="refreshButton">Refresh Weather</button>
-    </div>
-
-    <div class="section">
-        <h2>📡 Device Information</h2>
-        <p class="info" id="deviceStatus">Waiting for ESP32...</p>
-        <p class="info" id="sensorUpdated">Last sensor update: --</p>
-    </div>
+  </section>
 
 
-    <div class="section app-install">
-        <h2>📱 Install Our Android App</h2>
-        <p>Scan this QR code with your Android phone to open the app page and install it.</p>
-        <img class="app-qr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKMAAACkCAIAAAB0CwlvAAAPrklEQVR42u2df1BUVRTHH0GxTIMEagpbkCy4oLKoyFQGVkbgTA0wQ40yOtUyUwZOWTuVFDqVUTOSa6jTMtOMxIxjOmYT4hhsptbioLI6qEj+poiE5McCsQMYmf3hzOt0Hnv2vX0PSjifvzj77rvvvnd23/1y7z3n+t28eVNgJgB38CNgTzPsaYY9zbCnGfY0MzbcHImxbMCJEyfgpc1mM1E4IyPjpnbYbDbiWmFhYah8RESE/PvKy8uD5zqdzv/Wrfyb5rc3w55m2NPM/5cAOYXKy8tnzJih1SUff/xxpB2guWbNmueee040/fz8YIGwsDA1ly4tLa2srBTN9vZ2eDQxMbG0tFQ0h4aGHnvsMVigra0Nmhs3bkxKShLNsrKy3bt3y2yJTqerrq6Gn6A7VWT+/PPPtJKV6+nk5OQ5c+Zo5enAwMDr1697Omo0Go1G4yh9ry9evPjDDz94OhoSEgJd29PTQxQWBMFkMsHyVVVVxDdY+h8N+hqpobGxkd/eDHuaPc1MXEWGWL9+/aFDh2QW1uv1O3bsgJ8QnbQgCCUlJd98841oLl26ND8/31Ph7u7unJycf31z77jjr7/+8mReunRJ/m2GhoYePnwYfvLss892dXV5Kr9q1arMzEzRDA8PR4ILtROdvnz58qtXr8q8kbS0tLVr13qqXDNPnzt3jpYqkJiYGEWKDFUOxa2U69evy2+JDyDRdOeddxIiy2AwGAwGT1WhwtBttzh+/PiVK1dkNgyNy8oZwOa3N/fTDHuamSiKTNG0prQwrciQuDh27Nh7770He/0VK1YQpxcWFgYGBsLa5Lc2KioKmoODgxs2bICf9Pf3E6fb7fajR4+K5rx587KysjzdlxwNJZ/RUmSKWiktTCsyRF1dXV1dnWhmZGRAT0u9+NZbb4WGhmry+IaGht5//335t2a32z/55BPRNJvN0NNeh8zUwIqMYU+zpxlWZP+NIkP09PR8//33oulyuejTT5061dvbK5ozZ86UvxYsICDg0UcfRZXD22ltbYWN0el0sHxcXBzRMOkYmRqpdFsqMvprVF9fj6a3aV555ZUjR46Ips1mI8ZWEcHBwdCRUtLT0w8cOCCaVquVKO91jEzNj40VGcOeZk8zrMj+IT4+HkkVAr1er0iRxcXFwcrb2trgVOPkyZPhOic0lycIwvHjx+EYmcFg8Pf3F82BgQHYler1+tjYWKIxqN9FigxqPUEQmpubYfnw8HC4TMqrInvwwQfvu+8+T7eGzFmzZilWTnJiOBobGzWMnICeEATB6XQShTdu3IhEEF35PffcA8s7HA549OWXX4ZH8/Pziaqkwl4RKIajvr4eHtXpdBo+0jNnznh1K7+9uZ9m2NMMe5q5zT2dkJDgpx1IeyPdaDabYeG2tjYoKywWCzwqFfZqcDgcsHKDwYBEDVoEaLfb4dHXX3+dGLdCtzk0NKThIzWZTPybZtjT7GmGPc3cxow8GopiF0aVmTNnQrOwsPD5558XzWPHjsHl9bGxsbBtbrcbLb7ftWsXHIPbtm3bunXrRBMtna+qqvrxxx9F84EHHoCVS6NqURQuPUmMTKPRCCuXLmVUE1Ura2Hkzf839Gjor7/+im7H5XLBAqmpqfK/c4sWLYLndnd30+Vp7W02m/9XT5Lf3txPM+xp5nZk5J4chk0oJS4ubtmyZUSB4uLiP//8UzRfeukluIpv7969DQ0NnrQGiuHo7++3Wq1I0Ol0Otj11tbWymx5ZGQkzBYyODhYUlJClF+xYgURXInQ6/UvvvgiUWDLli1wnpTWXAkJCTCcuKOjA2XRG8GDmucYzM7OVjM//cILL8CjFotFjQxRpMhUsmnTJnjpbdu2waMLFiygmyr/SyMIQm5uLs9PM9xPs6eZiTtG9u6770LTZrN1dnbKrBF18y6Xa8uWLUg0QRMFVWRnZ8PoVj8/P0VRtQiz2bx48WKZY0ktLS0VFRVEbRaLJTg4WDS3b9/e3NwsmjU1NX19faIJdeWt8TV4I9KW9PT0oJ4Yjh5KFRkxHuf7GJmitHNIkUmTyAwODmo1RqYtDoeDvjU0WZ6enj56P8G9e/fyikGG+2mGPc3IiuFA2iE+Pv7ee+/1VHj27NnQDAoKQgEfR44cCQj457pJSUlQ5kjHreDpiYmJau720qVLMLsbiuEICQmB15KKprvuuguaJpMJrolrbm5ubW0VzfDwcCip6JgM6SdTpkyBR3/66aeWlhZP99XZ2ek9qkZOh4+ct3PnzjGL4dAWRTEcShnVWct33nmHcOKcOXN41pLhfpo9zbCnmdsZH9QBPf2s7RgZDRTSPlBQUABrQ2mFQ0ND6as/+eSTsLzVaoVHy8vLiUsHBQWh2qKjo2GByspKHiNj+O3NsKcZ9vTEVmT0Kbt27YKFi4uL1TQA7VWr7cp+NXvVSkGzlrQiUwnMIywFrSPjlf0Mv73Z0wx7mrm98SWqds+ePWVlZaJJzJuOiN1uhxO9KKoW7Yz2yCOPwMY0NzfDSFcYC3ILtHZu9erVp0+fFk2LxQI3L1NKTk4ObDnaN5RetnfhwoWVK1eKpk6nq6mpIcoXFxe/9tprolleXr59+3boIPgcpLPdI2Ql1nw01De1LzOGw26305X39PTA8ikpKfCozWZTo71pUAwHQmWOwaKiIpUPmd/e3E8z7Glm/CgyFJNZUFAAlwjm5OTAfMYOhwOKJqPRSHfkqHIUVUtnCzEYDDC+RLqob/PmzfCTtLS0J554QjQ7OjrQ1VG0iiLoGA6pVITXQpuhjgXqsz5/8MEHsHBWVtZ/GFWrYdZnr6DRUBqvUbWsyBjupxn2NCNXkSFsNhsRtIFCFM+fPw9VT1hY2KuvvgoLrF27Fo5toahalXvVotMrKioOHjwomtOnT0cSDFYeFRUF85xIsVqtcLtalMcuPT394YcfFs2GhoaqqirR9BpViz7Jzc2Fsnfx4sUw8KWpqWnPnj2iOW3aNCRBfFRkaoiJiVEkPehnnZGRQZ9Ob1RbVlYGC3/66afwaGpqKl05vX8eGiOjVwx6hY6q/eKLL2BhjuFguJ9mTzMTWpEh6KhahHQDBYfDQezfee3aNUWNQdNzDz300MDAwD9f5H9P56GOVq/XqwnZTUxMhAM1cF+zW+oPVi6dWESBBIimpqZJkyaJZnR0dGRkpCfhKWvnW/UrBpUCcwAqBSkylSsGlULvw6GIwcFBRTf+4YcfsiJjuJ9m2NPsaWb8onmek6+//hoWlu4vhkhKSoLly8vLicJolV1ERMRYjpFpmOcE/oNwi8uXL8uP4UAkJCSwImP47c2eZtjTzLhTZKgMWke2dOlSeLSoqEiRItNwjMxrnpPa2lpCpCBFhvCa50SRInM6nYruFM1aosxzy5Yt46haht/e7GmGPc2MH2RF1c6YMUN+jSkpKfB0l8uFdnzdt28fXPyGoHcECwsLg4UjIiJQU7Oysn7//XeZTUWzvCaTafPmzaIp3av2q6++mjx5smi++eabUGctWbIENgZNcSJ0Ol11dTVx4/ROG7ImpOV4Gt2hIqZMmQJPv3z5Mppyr6mpUSO/6aaiR0DPtaOjISEhsDaXy4VaDrN5C4Jw+vRpWCAzM5N4btKWKHrI6HRiKQe/vbmfZtjTzHjCT846fpvN1tHRMTYNys7Onjt3rqejV65cgek+pJEQJSUlcIlWXl7e/fffL5pPP/30ggULRNPpdO7fv9/TtaR71aKd0RTR3t7+2WefwU9QNAktRQ8fPgxjZXJzc9FSMlldvcr5aTrHoDSGg5Zjn3/+OdESr3lOaND8tNKd0RDffvstPN1isYzZD5RzDDLcT7On+RFMEGTFcBQUFEBFhjY0TU1NJbKFoFEtQRCKioqkGeNEWlpaYPTpwoUL4UahXvOcIEWG2L9//2+//SaaycnJTz31lGhGRkbSaU+sVqvb7fY0moHMuXPnwrVgtOASBGHr1q0ul0um286ePUvH6KJ0LnIV2ViiMs8JvWJQ+g3WMIZD5c5oBoNBw18wKzLupxn2NDOeFdkImWRHDbRXbXx8PAxG1el0sDFedc2NGzeIaxmNxunTp4sm3KhWEIS+vr6Ghgai8uHhYWg2NjbC1MBoURuaZ+zv7z958qRo+vv7p6amyn9KBoMBRu12dXU1NTWJZnBw8Pz5830ZIxvL7xq9D4fVatXwWtqOkdHk5eUpygVMKzKOqmW4n2bY0+xpZsJ7ms4FrBSUC5gWgErHyGhQIj6bzeYHQMEoXoHDtF5JTk5Wk+eEf9MMe5phT7OnmfGMLzkG169ff+jQIZmF9Xr9jh074CdofbwiTpw48cYbb4jm1KlTv/zyS1ggMzMTxnBs3boVBkOUlpZWVlaKZnt7OxKecLW9dDQUxXB8/PHHb7/9tmiWlZXt3r1bNKurq4nNy6QpB1FjPvroI5hDGm2FhhZwygnp8MXT586dozMhQmJiYtAngYGBPju7u7sbXlqahrm2tra3t1c04d+CIFy8eJFoeW9vL31ff/zxBzRNJhM09+3bhzyHnKeI2bNnQ9ceOHCAaJuckA5+e3M/zbCnmYmiyBRNa0oL05002qsWKZfY2FgYuep2u1HEIuqY6X3WlPLMM8/AHc2QZENRtTU1NRs2bBDN+Ph4uGHq8PAwPcS2bt26TZs2iWZaWhqxgXBnZyd6DtIVBr54WtHzkhamFdn58+cJ6aHT6eAttbW1ydeGSr+jUurq6oijWVlZsG1wezxBEO6++254dGhoiL7WmTNnoJmenk5E4TY2Nnp9Dvz25n6aYU8zrMg0UGSIhQsXwo1CpeMwiMLCQjgrevDgwe+++040p02bRkRptLS0VFRUQE2wZs0a+U3t6+sjNsKV7keCWL16NdzVA8m94eFhWHlCQkJOTo4y5eRDjkF602GENKpWw71qve7DkZKSAo/abDaiNiRqtM0xqDTrM4LOMYjkm8AxHNxPM+xpZiIrMhRmQSNVIrQiQxNwtNaQztah8vPnz/f39xfNgYEBOHik1+thGIfKATVU/tq1a/BakyZNgmEW0sqdTmdra6snRRYQEACf+dSpU2HlnZ2d3j3igyLTdsXgqCoyesVgfn6+hoqMznOicsUgx3Aw3E8z7GlWZB5xOp1dXV1aXVKRIrt69SoRVet2u5ESqa+vhzpg3rx5ISEhnipvb2+Hlf/yyy+wNrhV7C2OHj0KG48aIxUNELfbDa9148YN1HKn0wmHU0wmE8zkERUVRai/0dqrVltQVK3ZbJZ/rl6vRy2HA4qCIDgcDng0Pz+fqG3RokW0qJEuW/OZoKAgVHl0dDQsUFlZSbSEFRnD/TR7mh8Be5oZV/iNsf5i+DfNsKcZ9jTDnmbY0+xpZnzzN4JmE6RHvOO4AAAAAElFTkSuQmCC" alt="QR code to install ESP 32 SYSTEM KILLER">
-        <p class="app-name">ESP 32 SYSTEM KILLER</p>
+  <!-- WELCOME -->
+
+  <section class="welcome">
+
+    <strong>
+      👋 Welcome to Team Aqua.
+    </strong>
+
+    <p>
+      Your Smart Weather Station dashboard is ready.
+      The ESP32 sensor link updates live, online weather
+      refreshes automatically, and Bass Pulse runs as the
+      site's automatic soundtrack.
+    </p>
+
+  </section>
+
+
+  <!-- FIREBASE STATUS -->
+
+  <div
+    class="status"
+    id="firebaseStatus"
+  >
+
+    <span class="status-dot"></span>
+
+    <span id="firebaseStatusText">
+      Connecting to ESP32...
+    </span>
+
+  </div>
+
+
+  <!-- WEATHER CARDS -->
+
+  <section class="cards">
+
+
+    <!-- TEMPERATURE -->
+
+    <article class="card surface">
+
+      <div class="card-top">
+
+        <div class="icon">
+          🌡️
+        </div>
+
+        <span class="badge">
+          ESP32
+        </span>
+
+      </div>
+
+      <div class="label">
+        Temperature
+      </div>
+
+      <div
+        class="value temp"
+        id="temperature"
+      >
+        --
+        <span class="unit">
+          °C
+        </span>
+      </div>
+
+      <div class="muted">
+        DHT22 local reading
+      </div>
+
+    </article>
+
+
+    <!-- HUMIDITY -->
+
+    <article class="card surface">
+
+      <div class="card-top">
+
+        <div class="icon">
+          💧
+        </div>
+
+        <span class="badge">
+          ESP32
+        </span>
+
+      </div>
+
+      <div class="label">
+        Humidity
+      </div>
+
+      <div
+        class="value humid"
+        id="humidity"
+      >
+        --
+        <span class="unit">
+          %
+        </span>
+      </div>
+
+      <div class="muted">
+        DHT22 local reading
+      </div>
+
+    </article>
+
+
+    <!-- WIND -->
+
+    <article class="card surface">
+
+      <div class="card-top">
+
+        <div class="icon">
+          💨
+        </div>
+
+        <span class="badge">
+          ONLINE
+        </span>
+
+      </div>
+
+      <div class="label">
+        Wind Speed
+      </div>
+
+      <div
+        class="value wind"
+        id="wind"
+      >
+        --
+        <span class="unit">
+          km/h
+        </span>
+      </div>
+
+      <div class="muted">
+        Open-Meteo current data
+      </div>
+
+    </article>
+
+
+    <!-- PRESSURE -->
+
+    <article class="card surface">
+
+      <div class="card-top">
+
+        <div class="icon">
+          🌬️
+        </div>
+
+        <span class="badge">
+          ONLINE
+        </span>
+
+      </div>
+
+      <div class="label">
+        Air Pressure
+      </div>
+
+      <div
+        class="value pressure"
+        id="pressure"
+      >
+        --
+        <span class="unit">
+          hPa
+        </span>
+      </div>
+
+      <div class="muted">
+        Mean sea-level pressure
+      </div>
+
+    </article>
+
+  </section>
+
+
+  <!-- ONLINE WEATHER -->
+
+  <section
+    class="section surface"
+    id="weather"
+  >
+
+    <div class="section-head">
+
+      <h2>
+        ☁️ Current Online Weather
+      </h2>
+
+      <span class="pill">
+        AUTO • 10 MIN
+      </span>
+
     </div>
+
+
+    <p
+      class="location"
+      id="condition"
+    >
+      Waiting for weather data...
+    </p>
+
+
+    <div class="data-row">
+
+      <div class="data-box">
+
+        <span class="muted">
+          Wind direction
+        </span>
+
+        <strong id="windDirection">
+          --
+        </strong>
+
+      </div>
+
+
+      <div class="data-box">
+
+        <span class="muted">
+          Online update
+        </span>
+
+        <strong id="weatherUpdated">
+          --
+        </strong>
+
+      </div>
+
+
+      <div class="data-box">
+
+        <span class="muted">
+          ESP32 update
+        </span>
+
+        <strong id="sensorUpdated">
+          --
+        </strong>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- MUSIC -->
+
+  <section
+    class="section surface"
+    id="music"
+  >
+
+    <div class="music-card">
+
+      <div>
+
+        <div class="eyebrow">
+          AUTOMATIC SOUNDTRACK
+        </div>
+
+        <div class="music-title">
+          🎵 Bass Pulse
+        </div>
+
+        <div class="music-meta">
+          The only soundtrack • automatic mode
+        </div>
+
+      </div>
+
+
+      <div class="auto-status">
+
+        <span
+          class="pill"
+          id="musicState"
+        >
+          AUTO READY
+        </span>
+
+        <div
+          class="eq"
+          aria-hidden="true"
+        >
+
+          <i></i>
+          <i></i>
+          <i></i>
+          <i></i>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <p
+      class="muted"
+      style="margin-bottom:0"
+    >
+      Bass Pulse.mp3 is loaded locally beside index.html.
+      The browser may require one tap/click before it can
+      start audio automatically.
+    </p>
+
+
+    <audio
+      id="bassPulse"
+      preload="auto"
+      loop
+    >
+
+      <source
+        src="Bass_Pulse.mp3"
+        type="audio/mpeg"
+      >
+
+    </audio>
+
+  </section>
+
+
+  <!-- ANDROID APP -->
+
+  <section
+    class="section surface"
+    id="app"
+  >
+
+    <div class="section-head">
+
+      <h2>
+        📱 Android App
+      </h2>
+
+      <span class="pill">
+        MEDIAN
+      </span>
+
+    </div>
+
+
+    <div class="app-grid">
+
+      <div>
+
+        <p class="app-name">
+          ESP 32 SYSTEM KILLER
+        </p>
+
+        <p class="muted">
+          Scan the QR code to open the Median app
+          installation page. The mobile dashboard is
+          designed to use the same responsive website
+          experience.
+        </p>
+
+        <p class="muted">
+          Team Aqua • Smart Weather Station
+          • Made by Killer Studios
+        </p>
+
+      </div>
+
+
+      <!-- PUT YOUR EXISTING MEDIAN QR IMAGE HERE -->
+
+      <img
+        class="app-qr"
+        src="Screenshot 2026-09-29 221732.png"
+        alt="QR code to install ESP 32 SYSTEM KILLER"
+      >
+
+    </div>
+
+  </section>
 
 </main>
 
+
+<!-- FOOTER -->
+
 <footer>
-    Smart Weather Station<br>
-    ESP32 • Firebase • Open-Meteo
+
+  <b>
+    Team Aqua • Smart Weather Station
+  </b>
+
+  <br>
+
+  ESP32 • Firebase • Open-Meteo • Median
+
+  <br><br>
+
+  Made by Killer Studios
+
 </footer>
+
+
+<!-- DEVELOPER PANEL -->
+
+<div
+  class="dev-panel"
+  id="devPanel"
+  aria-hidden="true"
+>
+
+  <div class="dev-box">
+
+    <button
+      class="close"
+      id="closeDev"
+      aria-label="Close developer panel"
+    >
+      ×
+    </button>
+
+    <h2>
+      🛠️ Aqua Developer Console
+    </h2>
+
+    <p class="dev-help">
+
+      Local UI developer tools.
+      Complete the Konami sequence and password,
+      or use the mobile admin command.
+      These are browser-side controls, not real security.
+
+    </p>
+
+
+    <div class="dev-form">
+
+      <input
+        id="devPassword"
+        type="password"
+        placeholder="Developer password"
+      >
+
+      <input
+        id="mobileCommand"
+        placeholder="Mobile admin command"
+      >
+
+      <input
+        id="actionCode"
+        placeholder="System code e.g. AQUA-REFRESH"
+      >
+
+
+      <div class="dev-actions">
+
+        <button
+          class="primary"
+          id="unlockDev"
+        >
+          Unlock
+        </button>
+
+        <button
+          class="secondary"
+          id="runCode"
+        >
+          Run code
+        </button>
+
+        <button
+          class="secondary"
+          id="clearConsole"
+        >
+          Clear
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div
+      class="dev-output"
+      id="devOutput"
+    >
+      Console ready.
+    </div>
+
+  </div>
+
+</div>
+
 
 <script type="module">
 
-/* FIREBASE IMPORTS */
-
-import { initializeApp }
-    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+/* FIREBASE */
 
 import {
-    getDatabase,
-    ref,
-    onValue
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
 
-/* FIREBASE CONFIGURATION
-   Replace these placeholders with your own Firebase config.
-*/
-
 const firebaseConfig = {
-  apiKey: "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
-  authDomain: "esp-32-aws.firebaseapp.com",
-  databaseURL: "https://esp-32-aws-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "esp-32-aws",
-  storageBucket: "esp-32-aws.firebasestorage.app",
-  messagingSenderId: "937467091314",
-  appId: "1:937467091314:web:52cabb7b0ad155f150e5eb"
+
+  apiKey:
+    "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
+
+  authDomain:
+    "esp-32-aws.firebaseapp.com",
+
+  databaseURL:
+    "https://esp-32-aws-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+  projectId:
+    "esp-32-aws",
+
+  storageBucket:
+    "esp-32-aws.firebasestorage.app",
+
+  messagingSenderId:
+    "937467091314",
+
+  appId:
+    "1:937467091314:web:52cabb7b0ad155f150e5eb"
 };
 
 
-/* INITIALIZE FIREBASE */
+const app =
+  initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+const database =
+  getDatabase(app);
 
-const weatherRef = ref(database, "weatherStation");
-
-const firebaseStatus = document.getElementById("firebaseStatus");
-const deviceStatus = document.getElementById("deviceStatus");
-const sensorUpdated = document.getElementById("sensorUpdated");
+const weatherRef =
+  ref(database,"weatherStation");
 
 
-/* FIREBASE LIVE DATA */
+const $ = id =>
+  document.getElementById(id);
 
-onValue(weatherRef, (snapshot) => {
-    const data = snapshot.val();
 
-    if (!data) {
-        firebaseStatus.textContent = "🟡 Waiting for ESP32 readings...";
-        deviceStatus.textContent = "No sensor data received yet.";
-        return;
+/* DRAWER */
+
+const drawer =
+  $("drawer");
+
+const overlay =
+  $("overlay");
+
+
+function openDrawer(){
+
+  drawer.classList.add("open");
+
+  overlay.classList.add("open");
+
+}
+
+
+function closeDrawer(){
+
+  drawer.classList.remove("open");
+
+  overlay.classList.remove("open");
+
+}
+
+
+$("menuButton")
+  .addEventListener(
+    "click",
+    openDrawer
+  );
+
+
+$("closeDrawer")
+  .addEventListener(
+    "click",
+    closeDrawer
+  );
+
+
+overlay.addEventListener(
+  "click",
+  closeDrawer
+);
+
+
+document
+  .querySelectorAll("[data-target]")
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        closeDrawer();
+
+        $(button.dataset.target)
+          .scrollIntoView({
+            behavior:"smooth"
+          });
+
+      }
+    );
+
+  });
+
+
+/* FIREBASE SENSOR DATA */
+
+onValue(
+  weatherRef,
+  snapshot => {
+
+    const data =
+      snapshot.val();
+
+
+    if(!data){
+
+      $("firebaseStatusText")
+        .textContent =
+        "Waiting for ESP32 readings...";
+
+      $("firebaseStatus")
+        .classList
+        .remove("ok","bad");
+
+      $("sensorState")
+        .textContent =
+        "WAITING";
+
+      return;
+
     }
 
-    if (typeof data.temperature === "number") {
-        document.getElementById("temperature").innerHTML =
-            `${data.temperature.toFixed(1)} <span class="unit">°C</span>`;
+
+    if(
+      Number.isFinite(
+        Number(data.temperature)
+      )
+    ){
+
+      $("temperature").innerHTML =
+        `${Number(data.temperature).toFixed(1)}
+        <span class="unit">°C</span>`;
+
     }
 
-    if (typeof data.humidity === "number") {
-        document.getElementById("humidity").innerHTML =
-            `${data.humidity.toFixed(0)} <span class="unit">%</span>`;
+
+    if(
+      Number.isFinite(
+        Number(data.humidity)
+      )
+    ){
+
+      $("humidity").innerHTML =
+        `${Number(data.humidity).toFixed(0)}
+        <span class="unit">%</span>`;
+
     }
 
-    firebaseStatus.textContent = "🟢 Firebase connected";
-    deviceStatus.textContent = "Sensor readings received.";
 
-    sensorUpdated.textContent =
-        "Last received: " + new Date().toLocaleTimeString();
-
-}, (error) => {
-    firebaseStatus.textContent = "🔴 Firebase error";
-    deviceStatus.textContent = error.message;
-});
+    $("firebaseStatusText")
+      .textContent =
+      "Firebase connected • ESP32 online";
 
 
-/* ONLINE WEATHER DATA */
+    $("firebaseStatus")
+      .classList
+      .add("ok");
+
+
+    $("firebaseStatus")
+      .classList
+      .remove("bad");
+
+
+    $("sensorState")
+      .textContent =
+      "ONLINE";
+
+
+    $("sensorUpdated")
+      .textContent =
+      new Date().toLocaleTimeString();
+
+  },
+
+
+  error => {
+
+    $("firebaseStatusText")
+      .textContent =
+      "Firebase error";
+
+
+    $("firebaseStatus")
+      .classList
+      .add("bad");
+
+
+    $("sensorState")
+      .textContent =
+      "ERROR";
+
+
+    console.error(error);
+
+  }
+);
+
+
+/* OPEN-METEO */
 
 const conditionNames = {
-    0: "Clear sky ☀️",
-    1: "Mainly clear 🌤️",
-    2: "Partly cloudy ⛅",
-    3: "Overcast ☁️",
-    45: "Fog 🌫️",
-    48: "Depositing rime fog 🌫️",
-    51: "Light drizzle 🌦️",
-    53: "Moderate drizzle 🌦️",
-    55: "Dense drizzle 🌧️",
-    61: "Slight rain 🌧️",
-    63: "Moderate rain 🌧️",
-    65: "Heavy rain 🌧️",
-    71: "Slight snowfall ❄️",
-    73: "Moderate snowfall ❄️",
-    75: "Heavy snowfall ❄️",
-    80: "Rain showers 🌧️",
-    81: "Moderate rain showers 🌧️",
-    82: "Violent rain showers 🌧️",
-    95: "Thunderstorm ⛈️",
-    96: "Thunderstorm with hail ⛈️",
-    99: "Thunderstorm with heavy hail ⛈️"
+
+  0:"Clear sky ☀️",
+
+  1:"Mainly clear 🌤️",
+
+  2:"Partly cloudy ⛅",
+
+  3:"Overcast ☁️",
+
+  45:"Fog 🌫️",
+
+  48:"Rime fog 🌫️",
+
+  51:"Light drizzle 🌦️",
+
+  53:"Moderate drizzle 🌦️",
+
+  55:"Dense drizzle 🌧️",
+
+  61:"Slight rain 🌧️",
+
+  63:"Moderate rain 🌧️",
+
+  65:"Heavy rain 🌧️",
+
+  71:"Slight snowfall ❄️",
+
+  73:"Moderate snowfall ❄️",
+
+  75:"Heavy snowfall ❄️",
+
+  80:"Rain showers 🌧️",
+
+  81:"Moderate rain showers 🌧️",
+
+  82:"Violent rain showers 🌧️",
+
+  95:"Thunderstorm ⛈️",
+
+  96:"Thunderstorm with hail ⛈️",
+
+  99:"Thunderstorm with heavy hail ⛈️"
+
 };
 
-function getDirection(degrees) {
-    const directions = [
-        "N", "NE", "E", "SE",
-        "S", "SW", "W", "NW"
-    ];
 
-    return directions[
-        Math.round(degrees / 45) % 8
-    ];
-}
+function direction(degrees){
 
-async function loadWeather(latitude, longitude, locationName) {
-    const url =
-        `https://api.open-meteo.com/v1/forecast` +
-        `?latitude=${latitude}` +
-        `&longitude=${longitude}` +
-        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl` +
-        `&timezone=auto`;
+  return [
+    "N",
+    "NE",
+    "E",
+    "SE",
+    "S",
+    "SW",
+    "W",
+    "NW"
+  ][
+    Math.round(
+      Number(degrees)/45
+    ) % 8
+  ];
 
-    try {
-        document.getElementById("condition").textContent =
-            "Loading online weather...";
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error("Weather service unavailable");
-        }
-
-        const result = await response.json();
-        const current = result.current;
-
-        document.getElementById("wind").innerHTML =
-            `${Number(current.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
-
-        document.getElementById("pressure").innerHTML =
-            `${Number(current.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
-
-        document.getElementById("condition").textContent =
-            conditionNames[current.weather_code] ??
-            "Weather condition unavailable";
-
-        document.getElementById("windDirection").textContent =
-            "Wind direction: " +
-            getDirection(current.wind_direction_10m);
-
-        document.getElementById("weatherUpdated").textContent =
-            "Online weather updated: " +
-            new Date().toLocaleTimeString();
-
-        document.getElementById("location").textContent =
-            "📍 " + locationName;
-
-    } catch (error) {
-        document.getElementById("condition").textContent =
-            "Unable to load online weather.";
-        console.error(error);
-    }
 }
 
 
-/* LOCATION */
+let lat = null;
 
-let savedLatitude = null;
-let savedLongitude = null;
-let savedLocation = "Your location";
+let lon = null;
 
-function detectLocation() {
-    if (!navigator.geolocation) {
-        document.getElementById("location").textContent =
-            "📍 Location is not supported by this browser.";
-        return;
+let locationName =
+  "Your current location";
+
+
+async function loadWeather(
+  latitude,
+  longitude,
+  name
+){
+
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&timezone=auto`;
+
+
+  try{
+
+    $("condition")
+      .textContent =
+      "Loading online weather...";
+
+
+    const response =
+      await fetch(url);
+
+
+    if(!response.ok){
+
+      throw new Error(
+        "Open-Meteo request failed"
+      );
+
     }
 
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            savedLatitude = position.coords.latitude;
-            savedLongitude = position.coords.longitude;
 
-            savedLocation = "Your current location";
+    const result =
+      await response.json();
 
-            await loadWeather(
-                savedLatitude,
-                savedLongitude,
-                savedLocation
-            );
-        },
-        () => {
-            document.getElementById("location").textContent =
-                "📍 Location unavailable. Please allow location access.";
 
-            document.getElementById("condition").textContent =
-                "Allow location access to load local weather.";
-        },
-        {
-            enableHighAccuracy: false,
-            timeout: 15000,
-            maximumAge: 600000
-        }
-    );
+    const c =
+      result.current;
+
+
+    $("wind").innerHTML =
+      `${Number(c.wind_speed_10m).toFixed(1)}
+      <span class="unit">km/h</span>`;
+
+
+    $("pressure").innerHTML =
+      `${Number(c.pressure_msl).toFixed(0)}
+      <span class="unit">hPa</span>`;
+
+
+    $("condition")
+      .textContent =
+      conditionNames[c.weather_code]
+      ??
+      "Weather condition unavailable";
+
+
+    $("windDirection")
+      .textContent =
+      `${direction(c.wind_direction_10m)}
+      •
+      ${Number(c.wind_direction_10m).toFixed(0)}°`;
+
+
+    $("weatherUpdated")
+      .textContent =
+      new Date().toLocaleTimeString();
+
+
+    $("location")
+      .textContent =
+      `📍 ${name}`;
+
+  }
+
+
+  catch(error){
+
+    $("condition")
+      .textContent =
+      "Unable to load online weather.";
+
+    console.error(error);
+
+  }
+
 }
 
-document.getElementById("refreshButton").addEventListener("click", () => {
-    if (savedLatitude !== null && savedLongitude !== null) {
-        loadWeather(savedLatitude, savedLongitude, savedLocation);
-    } else {
+
+function detectLocation(){
+
+  if(!navigator.geolocation){
+
+    $("location")
+      .textContent =
+      "📍 Geolocation is not supported.";
+
+    return;
+
+  }
+
+
+  $("location")
+    .textContent =
+    "📍 Requesting location...";
+
+
+  navigator.geolocation.getCurrentPosition(
+
+    async position => {
+
+      lat =
+        position.coords.latitude;
+
+      lon =
+        position.coords.longitude;
+
+      locationName =
+        "Your current location";
+
+
+      await loadWeather(
+        lat,
+        lon,
+        locationName
+      );
+
+    },
+
+
+    () => {
+
+      $("location")
+        .textContent =
+        "📍 Location permission unavailable.";
+
+    },
+
+
+    {
+      enableHighAccuracy:false,
+      timeout:15000,
+      maximumAge:600000
+    }
+
+  );
+
+}
+
+
+$("refreshButton")
+  .addEventListener(
+    "click",
+    () => {
+
+      if(lat !== null){
+
+        loadWeather(
+          lat,
+          lon,
+          locationName
+        );
+
+      }
+
+      else{
+
         detectLocation();
+
+      }
+
     }
+  );
+
+
+$("locationButton")
+  .addEventListener(
+    "click",
+    detectLocation
+  );
+
+
+/* AUTOMATIC BASS PULSE MUSIC */
+
+const audio =
+  $("bassPulse");
+
+const musicState =
+  $("musicState");
+
+
+function updateMusic(){
+
+  musicState.textContent =
+    audio.paused
+      ? "AUTO READY"
+      : "AUTO PLAYING";
+
+}
+
+
+async function startMusic(){
+
+  try{
+
+    await audio.play();
+
+  }
+
+  catch(_){
+
+    /*
+      Browser autoplay policies
+      may block audio until the
+      user interacts with the page.
+    */
+
+  }
+
+
+  updateMusic();
+
+}
+
+
+[
+  "pointerdown",
+  "keydown",
+  "touchstart"
+]
+.forEach(event => {
+
+  document.addEventListener(
+    event,
+    () => {
+
+      if(audio.paused){
+
+        startMusic();
+
+      }
+
+    },
+    {
+      passive:true,
+      once:true
+    }
+  );
+
 });
 
 
-/* OPENING ANIMATION */
+window.addEventListener(
+  "load",
+  () => {
 
-window.addEventListener("load", () => {
+    setTimeout(
+      startMusic,
+      1900
+    );
+
+    updateMusic();
+
+  }
+);
+
+
+/* DEVELOPER SYSTEM */
+
+const DEV_PASSWORD =
+  "AQUA-DEV-2026";
+
+const MOBILE_ADMIN =
+  "AQUA-MOBILE-ADMIN";
+
+
+const KONAMI = [
+
+  "ArrowUp",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowLeft",
+  "ArrowRight",
+  "b",
+  "a"
+
+];
+
+
+let keys = [];
+
+let konamiUnlocked =
+  false;
+
+let devUnlocked =
+  false;
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    keys.push(event.key);
+
+
+    if(
+      keys.length >
+      KONAMI.length
+    ){
+
+      keys.shift();
+
+    }
+
+
+    if(
+
+      keys.length ===
+      KONAMI.length
+
+      &&
+
+      keys.every(
+        (key,index) =>
+          key.toLowerCase()
+          ===
+          KONAMI[index].toLowerCase()
+      )
+
+    ){
+
+      konamiUnlocked =
+        true;
+
+
+      $("devMenu")
+        .style
+        .display =
+        "block";
+
+
+      $("devOutput")
+        .textContent =
+        "Konami sequence accepted. Developer panel is now available.";
+
+    }
+
+  }
+);
+
+
+function openDev(){
+
+  $("devPanel")
+    .classList
+    .add("open");
+
+
+  $("devPanel")
+    .setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+}
+
+
+function closeDev(){
+
+  $("devPanel")
+    .classList
+    .remove("open");
+
+
+  $("devPanel")
+    .setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+}
+
+
+$("devMenu")
+  .addEventListener(
+    "click",
+    () => {
+
+      closeDrawer();
+
+      openDev();
+
+    }
+  );
+
+
+$("closeDev")
+  .addEventListener(
+    "click",
+    closeDev
+  );
+
+
+$("unlockDev")
+  .addEventListener(
+    "click",
+    () => {
+
+      const password =
+        $("devPassword")
+        .value
+        .trim();
+
+
+      const mobile =
+        $("mobileCommand")
+        .value
+        .trim();
+
+
+      if(
+        konamiUnlocked
+        &&
+        password ===
+        DEV_PASSWORD
+      ){
+
+        devUnlocked =
+          true;
+
+
+        $("devOutput")
+          .textContent =
+          "DEV ACCESS GRANTED.\nSystem commands enabled.";
+
+      }
+
+
+      else if(
+        mobile ===
+        MOBILE_ADMIN
+      ){
+
+        devUnlocked =
+          true;
+
+
+        $("devOutput")
+          .textContent =
+          "MOBILE ADMIN ACCESS GRANTED.\nSystem commands enabled.";
+
+      }
+
+
+      else{
+
+        $("devOutput")
+          .textContent =
+          "Access denied.";
+
+      }
+
+    }
+  );
+
+
+const commands = {
+
+  "AQUA-REFRESH":() => {
+
+    if(lat !== null){
+
+      loadWeather(
+        lat,
+        lon,
+        locationName
+      );
+
+    }
+
+    else{
+
+      detectLocation();
+
+    }
+
+    return "Weather refresh requested.";
+
+  },
+
+
+  "AQUA-MUSIC":() => {
+
+    if(audio.paused){
+
+      startMusic();
+
+    }
+
+    else{
+
+      audio.pause();
+
+    }
+
+    updateMusic();
+
+    return "Music state changed.";
+
+  },
+
+
+  "AQUA-MOBILE":() => {
+
+    document.body
+      .classList
+      .toggle(
+        "mobile-preview"
+      );
+
+    return "Mobile preview toggled.";
+
+  },
+
+
+  "AQUA-SPLASH":() => {
+
+    $("splash")
+      .classList
+      .remove("hide");
+
+
+    setTimeout(
+      () =>
+        $("splash")
+          .classList
+          .add("hide"),
+      1600
+    );
+
+
+    return "Splash replayed.";
+
+  },
+
+
+  "AQUA-SCAN":() => {
+
+    $("firebaseStatusText")
+      .textContent =
+      "SYSTEM SCAN COMPLETE • Team Aqua systems nominal.";
+
+
+    return "System scan complete.";
+
+  }
+
+};
+
+
+$("runCode")
+  .addEventListener(
+    "click",
+    () => {
+
+      if(!devUnlocked){
+
+        $("devOutput")
+          .textContent =
+          "Locked. Unlock the console first.";
+
+        return;
+
+      }
+
+
+      const code =
+        $("actionCode")
+        .value
+        .trim()
+        .toUpperCase();
+
+
+      $("devOutput")
+        .textContent =
+        commands[code]
+
+          ?
+
+          commands[code]()
+
+          :
+
+          `Unknown code: ${code || "(empty)"}
+Available:
+${Object.keys(commands).join(", ")}`;
+
+    }
+  );
+
+
+$("clearConsole")
+  .addEventListener(
+    "click",
+    () => {
+
+      $("devPassword").value =
+        "";
+
+      $("mobileCommand").value =
+        "";
+
+      $("actionCode").value =
+        "";
+
+      $("devOutput")
+        .textContent =
+        "Console cleared.";
+
+    }
+  );
+
+
+/* STARTUP */
+
+window.addEventListener(
+  "load",
+  () => {
+
     detectLocation();
 
-    setTimeout(() => {
-        document.getElementById("splash").classList.add("hide");
-    }, 2200);
-});
+
+    setTimeout(
+      () =>
+        $("splash")
+          .classList
+          .add("hide"),
+      1800
+    );
+
+  }
+);
 
 
 /* REFRESH ONLINE WEATHER EVERY 10 MINUTES */
 
-setInterval(() => {
-    if (savedLatitude !== null && savedLongitude !== null) {
-        loadWeather(savedLatitude, savedLongitude, savedLocation);
+setInterval(
+  () => {
+
+    if(lat !== null){
+
+      loadWeather(
+        lat,
+        lon,
+        locationName
+      );
+
     }
-}, 600000);
+
+  },
+  600000
+);
 
 </script>
 
