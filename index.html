@@ -781,7 +781,6 @@ volumeControl.addEventListener("input",()=>{
   Change them before publishing if you want different demo codes.
 */
 const DEV_PASSWORD="AQUA-DEV-2026";
-const MOBILE_ADMIN="AQUA-MOBILE-ADMIN";
 const KONAMI="ArrowUp ArrowUp ArrowDown ArrowDown ArrowLeft ArrowRight ArrowLeft ArrowRight b a";
 
 let konamiUnlocked=false;
@@ -826,17 +825,9 @@ $("closeDev").addEventListener("click",closeDev);
 
 $("unlockDev").addEventListener("click",()=>{
   const password=$("devPassword").value.trim();
-  const mobile=$("mobileCommand").value.trim();
-
   if(konamiUnlocked && password===DEV_PASSWORD){
     devUnlocked=true;
     $("devOutput").textContent="DEV ACCESS GRANTED.\nSystem commands are enabled.";
-    return;
-  }
-
-  if(mobile===MOBILE_ADMIN){
-    devUnlocked=true;
-    $("devOutput").textContent="MOBILE ADMIN ACCESS GRANTED.\nSystem commands are enabled.";
     return;
   }
 
@@ -853,10 +844,6 @@ const commands={
     autoMusicToggle.checked=!autoMusicToggle.checked;
     autoMusicToggle.dispatchEvent(new Event("change"));
     return autoMusicToggle.checked ? "Automatic music enabled." : "Automatic music disabled.";
-  },
-  "AQUA-MOBILE":()=>{
-    document.body.classList.toggle("mobile-preview");
-    return "Mobile preview toggled.";
   },
   "AQUA-SPLASH":()=>{
     $("splash").classList.remove("hide");
@@ -897,7 +884,6 @@ $("clearConsole").addEventListener("click",()=>{
   $("actionCode").value="";
   $("konamiInput").value="";
   $("devPassword").value="";
-  $("mobileCommand").value="";
 });
 
 
