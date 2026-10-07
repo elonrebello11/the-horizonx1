@@ -471,6 +471,33 @@ footer b{color:#8fa4bd}
     </div>
   </section>
 
+  <section class="grid" style="margin-top:16px">
+    <div class="card">
+      <div class="card-top"><div class="icon">🥵</div><span class="badge">ONLINE</span></div>
+      <div class="label">Feels Like</div>
+      <div class="value temperature" id="apparent">-- <span class="unit">°C</span></div>
+      <div class="info">Apparent temperature</div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div class="icon">🌧️</div><span class="badge">ONLINE</span></div>
+      <div class="label">Precipitation</div>
+      <div class="value humidity" id="precipitation">-- <span class="unit">mm</span></div>
+      <div class="info">Current rainfall</div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div class="icon">🌍</div><span class="badge">ONLINE</span></div>
+      <div class="label">Online Temperature</div>
+      <div class="value temperature" id="onlineTemp">-- <span class="unit">°C</span></div>
+      <div class="info">Open-Meteo for your location</div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div class="icon">💦</div><span class="badge">ONLINE</span></div>
+      <div class="label">Online Humidity</div>
+      <div class="value humidity" id="onlineHumidity">-- <span class="unit">%</span></div>
+      <div class="info">Open-Meteo for your location</div>
+    </div>
+  </section>
+
   <section class="section" id="weather">
     <div class="section-head">
       <h2>☁️ Current Weather</h2>
@@ -601,11 +628,15 @@ const firebaseConfig = {
   appId: "1:937467091314:web:52cabb7b0ad155f150e5eb"
 };
 
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const weatherRef = database.ref("weatherStation");
-
 const $ = id => document.getElementById(id);
+
+let weatherRef = null;
+try{
+  firebase.initializeApp(firebaseConfig);
+  weatherRef = firebase.database().ref("weatherStation");
+}catch(err){
+  console.error("Firebase failed to initialise:", err);
+}
 
 /* ---------- NAV DRAWER ---------- */
 const drawer = $("drawer");
@@ -624,7 +655,7 @@ document.querySelectorAll("[data-scroll]").forEach(btn => {
 });
 
 /* ---------- FIREBASE ---------- */
-onValue(weatherRef, snapshot => {
+if(weatherRef) weatherRef.on("value", snapshot => {
   const data = snapshot.val();
 
   if (!data) {
@@ -655,6 +686,12 @@ onValue(weatherRef, snapshot => {
   $("devicePill").textContent = "ERROR";
   $("deviceStatus").textContent = error.message;
 });
+if(!weatherRef){
+  $("firebaseStatusText").textContent = "Firebase unavailable (check connection)";
+  $("firebaseStatus").classList.add("bad");
+  $("devicePill").textContent = "OFFLINE";
+  $("deviceStatus").textContent = "Could not load the Firebase library.";
+}
 
 /* ---------- ONLINE WEATHER ---------- */
 const conditionNames = {
@@ -689,6 +726,15 @@ async function loadWeather(latitude, longitude, locationName){
     const current=result.current;
 
     $("wind").innerHTML=`${Number(current.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
+    const setCard=(id,value,unit,digits)=>{
+      if(value!==null && value!==undefined && !Number.isNaN(Number(value))){
+        $(id).innerHTML=`${Number(value).toFixed(digits)} <span class="unit">${unit}</span>`;
+      }
+    };
+    setCard("apparent",current.apparent_temperature,"°C",1);
+    setCard("precipitation",current.precipitation,"mm",1);
+    setCard("onlineTemp",current.temperature_2m,"°C",1);
+    setCard("onlineHumidity",current.relative_humidity_2m,"%",0);
     $("pressure").innerHTML=`${Number(current.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
     $("condition").textContent=conditionNames[current.weather_code] ?? "Weather condition unavailable";
     $("windDirection").textContent="Wind direction: "+getDirection(current.wind_direction_10m);
@@ -738,6 +784,7 @@ async function startBassPulse(){
   if(!autoMusicToggle.checked) return;
   try{
     await bassPulseAudio.play();
+    $("heroMusicButton").textContent="♫ Music playing";
   }catch(e){
     // Browser autoplay policies require a user gesture in many browsers.
   }
@@ -795,7 +842,7 @@ let rapidA=0;
 let rapidATimer=null;
 
 document.addEventListener("keydown",e=>{
-  keyBuffer.push(e.key);
+  keyBuffer.push(e.key.length===1 ? e.key.toLowerCase() : e.key);
   if(keyBuffer.length>10) keyBuffer.shift();
   if(e.key.toLowerCase()==="a"){
     rapidA++;
@@ -811,6 +858,7 @@ document.addEventListener("keydown",e=>{
     konamiUnlocked=true;
     $("openDevFromMenu").style.display="block";
     $("devOutput").textContent="Konami sequence accepted. Developer Panel unlocked in the menu.";
+    showSecret("🕹️ Konami accepted. Developer Panel unlocked in the menu.");
   }
 });
 
@@ -858,6 +906,10 @@ const commands={
   "AQUA-DARK":()=>{
     document.documentElement.style.setProperty("--blue","#55b7ff");
     return "Aqua theme refreshed.";
+  },
+  "AQUA-SCAN":()=>{
+    triggerSecret("scan");
+    return "System scan complete. Team Aqua systems nominal.";
   },
   "AQUA-SECRET":()=>{
     openSecrets();
@@ -995,6 +1047,7 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("DOMContentLoaded",()=>{
   detectLocation();
   updateMusicState();
+  startBassPulse();
   setTimeout(()=>$("splash").classList.add("hide"),1800);
 });
 
