@@ -988,7 +988,7 @@ function triggerSecret(word){
   const messages={
     aqua:"💧 AQUA PROTOCOL: 100% certified by absolutely nobody.",
     killer:"😎 KILLER STUDIOS MODE: the dashboard has gained +10 style points.",
-    sus:"📡 SUSPICIOUS WEATHER DETECTED. It is looking at you.",
+    sus:"📡 SUSPICIOUS WEATHER DETECTED: It is looking at you.",
     elon:"🚀 ELON MODE: Weather station has entered maximum overengineering.",
     scan:"🛰️ SYSTEM SCAN COMPLETE: 0 aliens, 1 ESP32, infinite confidence.",
     weather:"🌦️ WEATHER.exe says: 'Bro, look outside.'",
@@ -1011,6 +1011,36 @@ function triggerSecret(word){
 const secretWords = ["aqua","killer","sus","elon","scan","weather","firebase"];
 
 document.addEventListener("keydown",e=>{
+  const keyName = e.key === " " ? "Space" : e.key;
+  const normalized = keyName === "ArrowUp" ? "ArrowUp" :
+    keyName === "ArrowDown" ? "ArrowDown" :
+    keyName === "ArrowLeft" ? "ArrowLeft" :
+    keyName === "ArrowRight" ? "ArrowRight" :
+    keyName === "Enter" ? "Enter" :
+    keyName.length === 1 ? keyName.toLowerCase() : keyName;
+
+  keyBuffer.push(normalized);
+  if(keyBuffer.length > 12) keyBuffer.shift();
+
+  if (normalized === "a") {
+    rapidA++;
+    clearTimeout(rapidATimer);
+    rapidATimer=setTimeout(()=>rapidA=0,1200);
+    if(rapidA>=3){
+      rapidA=0;
+      document.body.animate([{filter:"brightness(1)"},{filter:"brightness(1.8)"},{filter:"brightness(1)"}],{duration:500});
+    }
+  }
+
+  if (keyBuffer.join(" ") === KONAMI) {
+    konamiUnlocked = true;
+    const devMenu = $("openDevFromMenu");
+    if (devMenu) devMenu.style.display = "block";
+    const devOutput = $("devOutput");
+    if (devOutput) devOutput.textContent = "Konami sequence accepted. Developer Panel unlocked in the menu.";
+    showSecret("🕹️ Konami accepted. Developer Panel unlocked in the menu.");
+  }
+
   if (e.key.length === 1) {
     typed=(typed+e.key.toLowerCase()).slice(-20);
     secretWords.forEach(word=>{
@@ -1024,31 +1054,7 @@ document.addEventListener("keydown",e=>{
     }
   }
 
-  if (e.key.length !== 1) {
-    keyBuffer.push(e.key.length===1 ? e.key.toLowerCase() : e.key);
-    if(keyBuffer.length>10) keyBuffer.shift();
-  }
-
-  if (e.key.toLowerCase()==="a") {
-    rapidA++;
-    clearTimeout(rapidATimer);
-    rapidATimer=setTimeout(()=>rapidA=0,1200);
-    if(rapidA>=3){
-      rapidA=0;
-      document.body.animate([{filter:"brightness(1)"},{filter:"brightness(1.8)"},{filter:"brightness(1)"}],{duration:500});
-    }
-  }
-
-  if(keyBuffer.join(" ")===KONAMI){
-    konamiUnlocked=true;
-    const devMenu = $("openDevFromMenu");
-    if (devMenu) devMenu.style.display="block";
-    const output = $("devOutput");
-    if (output) output.textContent="Konami sequence accepted. Developer Panel unlocked in the menu.";
-    showSecret("🕹️ Konami accepted. Developer Panel unlocked in the menu.");
-  }
-
-  if(e.key==="Escape") closeSecrets();
+  if (e.key === "Escape") closeSecrets();
 });
 
 // Click the Team Aqua logo 7 times for the secret vault.
