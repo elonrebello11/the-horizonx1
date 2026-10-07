@@ -360,6 +360,18 @@ footer b{color:#8fa4bd}
     var s = document.getElementById('splash');
     if (s) s.classList.add('hide');
   }, 2500);
+
+  // Shows any JavaScript error on screen (useful on phones with no console).
+  window.onerror = function(msg, src, line){
+    var d = document.getElementById('aquaErr');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'aquaErr';
+      d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#7f1d1d;color:#fff;padding:10px 12px;border-radius:10px;font:12px/1.4 monospace;white-space:pre-wrap';
+      document.body.appendChild(d);
+    }
+    d.textContent = 'JS error: ' + msg + ' (line ' + line + ')';
+  };
 </script>
 
 <header class="topbar">
@@ -641,16 +653,17 @@ try{
 /* ---------- NAV DRAWER ---------- */
 const drawer = $("drawer");
 const overlay = $("drawerOverlay");
-const openDrawer = () => { drawer.classList.add("open"); overlay.classList.add("open"); };
-const closeDrawer = () => { drawer.classList.remove("open"); overlay.classList.remove("open"); };
-$("menuButton").addEventListener("click", openDrawer);
-$("closeDrawer").addEventListener("click", closeDrawer);
-overlay.addEventListener("click", closeDrawer);
+const openDrawer = () => { if (drawer) drawer.classList.add("open"); if (overlay) overlay.classList.add("open"); };
+const closeDrawer = () => { if (drawer) drawer.classList.remove("open"); if (overlay) overlay.classList.remove("open"); };
+if ($("menuButton")) $("menuButton").addEventListener("click", openDrawer);
+if ($("closeDrawer")) $("closeDrawer").addEventListener("click", closeDrawer);
+if (overlay) overlay.addEventListener("click", closeDrawer);
 
 document.querySelectorAll("[data-scroll]").forEach(btn => {
   btn.addEventListener("click", () => {
     closeDrawer();
-    $(btn.dataset.scroll).scrollIntoView({behavior:"smooth"});
+    const target = $(btn.dataset.scroll);
+    if (target) target.scrollIntoView({behavior:"smooth"});
   });
 });
 
@@ -736,7 +749,7 @@ async function loadWeather(latitude, longitude, locationName){
     setCard("onlineTemp",current.temperature_2m,"°C",1);
     setCard("onlineHumidity",current.relative_humidity_2m,"%",0);
     $("pressure").innerHTML=`${Number(current.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
-    $("condition").textContent=conditionNames[current.weather_code] ?? "Weather condition unavailable";
+    $("condition").textContent=(conditionNames[current.weather_code]!==undefined ? conditionNames[current.weather_code] : "Weather condition unavailable");
     $("windDirection").textContent="Wind direction: "+getDirection(current.wind_direction_10m);
     $("weatherUpdated").textContent=new Date().toLocaleTimeString();
     $("location").textContent="📍 "+locationName;
@@ -762,10 +775,12 @@ function detectLocation(){
   },{enableHighAccuracy:false,timeout:15000,maximumAge:600000});
 }
 
-$("refreshButton").addEventListener("click",()=>{
-  if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
-  else detectLocation();
-});
+if ($("refreshButton")) {
+  $("refreshButton").addEventListener("click",()=>{
+    if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
+    else detectLocation();
+  });
+}
 
 /* ---------- AUTOMATIC BASS PULSE RADIO ---------- */
 const bassPulseAudio=$("bassPulseAudio");
@@ -773,65 +788,74 @@ const autoMusicToggle=$("autoMusicToggle");
 const musicState=$("musicState");
 const volumeControl=$("volume");
 
-bassPulseAudio.volume=Number(volumeControl.value);
+if (bassPulseAudio && volumeControl) bassPulseAudio.volume=Number(volumeControl.value);
 
 function updateMusicState(){
+  if (!autoMusicToggle || !musicState) return;
   const on=autoMusicToggle.checked;
   musicState.textContent=on ? "AUTO ON" : "AUTO OFF";
 }
 
 async function startBassPulse(){
-  if(!autoMusicToggle.checked) return;
+  if(!autoMusicToggle || !bassPulseAudio || !autoMusicToggle.checked) return;
   try{
     await bassPulseAudio.play();
-    $("heroMusicButton").textContent="♫ Music playing";
+    if ($("heroMusicButton")) $("heroMusicButton").textContent="♫ Music playing";
   }catch(e){
     // Browser autoplay policies require a user gesture in many browsers.
   }
   updateMusicState();
 }
 
-$("heroMusicButton").addEventListener("click", async()=>{
-  autoMusicToggle.checked=true;
-  try{
-    await bassPulseAudio.play();
-    $("heroMusicButton").textContent="♫ Music playing";
-  }catch(e){
-    $("heroMusicButton").textContent="▶ Start music";
-  }
-  updateMusicState();
-});
+if ($("heroMusicButton")) {
+  $("heroMusicButton").addEventListener("click", async()=>{
+    if (!autoMusicToggle) return;
+    autoMusicToggle.checked=true;
+    try{
+      await bassPulseAudio.play();
+      $("heroMusicButton").textContent="♫ Music playing";
+    }catch(e){
+      $("heroMusicButton").textContent="▶ Start music";
+    }
+    updateMusicState();
+  });
+}
 
-bassPulseAudio.addEventListener("error",()=>{
-  $("musicState").textContent="FILE ERROR";
-  console.error("Bass Pulse.mp3 could not be loaded. Check that the file is beside index.html and named exactly: Bass Pulse.mp3");
-});
-
+if (bassPulseAudio) {
+  bassPulseAudio.addEventListener("error",()=>{
+    if (musicState) musicState.textContent="FILE ERROR";
+    console.error("Bass Pulse.mp3 could not be loaded. Check that the file is beside index.html and named exactly: Bass Pulse.mp3");
+  });
+}
 
 function stopBassPulse(){
-  bassPulseAudio.pause();
+  if (bassPulseAudio) bassPulseAudio.pause();
   updateMusicState();
 }
 
-autoMusicToggle.addEventListener("change",()=>{
-  if(autoMusicToggle.checked) startBassPulse();
-  else stopBassPulse();
-});
-volumeControl.addEventListener("input",()=>{
-  bassPulseAudio.volume=Number(volumeControl.value);
-});
-["pointerdown","keydown","touchstart"].forEach(evt=>{
-  document.addEventListener(evt,()=>{
-    if(autoMusicToggle.checked && bassPulseAudio.paused) startBassPulse();
-  },{passive:true});
-});
+if (autoMusicToggle) {
+  autoMusicToggle.addEventListener("change",()=>{
+    if(autoMusicToggle.checked) startBassPulse();
+    else stopBassPulse();
+  });
+}
+
+if (volumeControl && bassPulseAudio) {
+  volumeControl.addEventListener("input",()=>{
+    bassPulseAudio.volume=Number(volumeControl.value);
+  });
+}
+
+if (document) {
+  ["pointerdown","keydown","touchstart"].forEach(evt=>{
+    document.addEventListener(evt,()=>{
+      if(autoMusicToggle && bassPulseAudio && autoMusicToggle.checked && bassPulseAudio.paused) startBassPulse();
+    },{passive:true});
+  });
+}
 
 
 /* ---------- DEVELOPER / CODE SYSTEM ---------- */
-/*
-  These are client-side UI codes. Do not use them for real authentication.
-  Change them before publishing if you want different demo codes.
-*/
 const DEV_PASSWORD="AQUA-DEV-2026";
 const KONAMI="ArrowUp ArrowUp ArrowDown ArrowDown ArrowLeft ArrowRight ArrowLeft ArrowRight b a";
 
@@ -840,43 +864,58 @@ let devUnlocked=false;
 let keyBuffer=[];
 let rapidA=0;
 let rapidATimer=null;
+let typed="";
+let secretTyped="";
+let logoClicks=0;
+let logoClickTimer=null;
+let conditionClicks=0;
+let conditionClickTimer=null;
 
-document.addEventListener("keydown",e=>{
-  keyBuffer.push(e.key.length===1 ? e.key.toLowerCase() : e.key);
-  if(keyBuffer.length>10) keyBuffer.shift();
-  if(e.key.toLowerCase()==="a"){
-    rapidA++;
-    clearTimeout(rapidATimer);
-    rapidATimer=setTimeout(()=>rapidA=0,1200);
-    if(rapidA>=3){
-      rapidA=0;
-      document.body.animate([{filter:"brightness(1)"},{filter:"brightness(1.8)"},{filter:"brightness(1)"}],{duration:500});
-    }
-  }
+function showSecret(message){
+  const toast = $("secretToast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(window.aquaToastTimer);
+  window.aquaToastTimer = setTimeout(()=>toast.classList.remove("show"), 3200);
+}
 
-  if(keyBuffer.join(" ")===KONAMI){
-    konamiUnlocked=true;
-    $("openDevFromMenu").style.display="block";
-    $("devOutput").textContent="Konami sequence accepted. Developer Panel unlocked in the menu.";
-    showSecret("🕹️ Konami accepted. Developer Panel unlocked in the menu.");
-  }
-});
+function openSecrets(){
+  const overlay = $("secretOverlay");
+  if (!overlay) return;
+  overlay.classList.add("show");
+  overlay.setAttribute("aria-hidden","false");
+}
+function closeSecrets(){
+  const overlay = $("secretOverlay");
+  if (!overlay) return;
+  overlay.classList.remove("show");
+  overlay.setAttribute("aria-hidden","true");
+}
+if ($("closeSecrets")) $("closeSecrets").addEventListener("click", closeSecrets);
+if ($("secretCloseButton")) $("secretCloseButton").addEventListener("click", closeSecrets);
+const secretOverlayEl = $("secretOverlay");
+if (secretOverlayEl) secretOverlayEl.addEventListener("click", e => { if (e.target === secretOverlayEl) closeSecrets(); });
 
 function openDev(){
-  $("devPanel").classList.add("open");
-  $("devPanel").setAttribute("aria-hidden","false");
+  const panel = $("devPanel");
+  if (!panel) return;
+  panel.classList.add("open");
+  panel.setAttribute("aria-hidden","false");
 }
 function closeDev(){
-  $("devPanel").classList.remove("open");
-  $("devPanel").setAttribute("aria-hidden","true");
+  const panel = $("devPanel");
+  if (!panel) return;
+  panel.classList.remove("open");
+  panel.setAttribute("aria-hidden","true");
 }
-$("openDevFromMenu").addEventListener("click",()=>{
+if ($("openDevFromMenu")) $("openDevFromMenu").addEventListener("click",()=>{
   if(!konamiUnlocked) return;
   closeDrawer(); openDev();
 });
-$("closeDev").addEventListener("click",closeDev);
+if ($("closeDev")) $("closeDev").addEventListener("click", closeDev);
 
-$("unlockDev").addEventListener("click",()=>{
+if ($("unlockDev")) $("unlockDev").addEventListener("click",()=>{
   const password=$("devPassword").value.trim();
   if(konamiUnlocked && password===DEV_PASSWORD){
     devUnlocked=true;
@@ -894,13 +933,15 @@ const commands={
     return "Weather refresh requested.";
   },
   "AQUA-MUSIC":()=>{
+    if (!autoMusicToggle) return "Automatic music unavailable.";
     autoMusicToggle.checked=!autoMusicToggle.checked;
     autoMusicToggle.dispatchEvent(new Event("change"));
     return autoMusicToggle.checked ? "Automatic music enabled." : "Automatic music disabled.";
   },
   "AQUA-SPLASH":()=>{
-    $("splash").classList.remove("hide");
-    setTimeout(()=>$("splash").classList.add("hide"),1600);
+    const splash = $("splash");
+    if (splash) splash.classList.remove("hide");
+    setTimeout(()=>{ if (splash) splash.classList.add("hide"); },1600);
     return "Splash screen replayed.";
   },
   "AQUA-DARK":()=>{
@@ -926,7 +967,7 @@ const commands={
   }
 };
 
-$("runCode").addEventListener("click",()=>{
+if ($("runCode")) $("runCode").addEventListener("click",()=>{
   if(!devUnlocked){
     $("devOutput").textContent="Locked. Unlock the developer console first.";
     return;
@@ -936,42 +977,12 @@ $("runCode").addEventListener("click",()=>{
   else $("devOutput").textContent=`Unknown system code: ${code || "(empty)"}\nAvailable: ${Object.keys(commands).join(", ")}`;
 });
 
-$("clearConsole").addEventListener("click",()=>{
+if ($("clearConsole")) $("clearConsole").addEventListener("click",()=>{
   $("devOutput").textContent="Console cleared.";
   $("actionCode").value="";
   $("konamiInput").value="";
   $("devPassword").value="";
 });
-
-
-/* ---------- EXTRA EASTER EGGS & FUNNY SECRETS ---------- */
-const secretToast=$("secretToast");
-const secretOverlay=$("secretOverlay");
-let toastTimer=null;
-let typed="";
-let logoClicks=0;
-let logoClickTimer=null;
-let conditionClicks=0;
-let conditionClickTimer=null;
-
-function showSecret(message){
-  secretToast.textContent=message;
-  secretToast.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>secretToast.classList.remove("show"),3200);
-}
-
-function openSecrets(){
-  secretOverlay.classList.add("show");
-  secretOverlay.setAttribute("aria-hidden","false");
-}
-function closeSecrets(){
-  secretOverlay.classList.remove("show");
-  secretOverlay.setAttribute("aria-hidden","true");
-}
-$("closeSecrets").addEventListener("click",closeSecrets);
-$("secretCloseButton").addEventListener("click",closeSecrets);
-secretOverlay.addEventListener("click",e=>{if(e.target===secretOverlay) closeSecrets();});
 
 function triggerSecret(word){
   const messages={
@@ -988,67 +999,97 @@ function triggerSecret(word){
 
   if(word==="killer") document.title="😎 KILLER STUDIOS • Team Aqua";
   if(word==="scan"){
-    $("welcomePanel").animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:700});
-    $("deviceStatus").textContent="SYSTEM SCAN COMPLETE • Team Aqua systems nominal.";
+    const welcome = $("welcomePanel");
+    if (welcome) welcome.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:700});
+    if ($("deviceStatus")) $("deviceStatus").textContent="SYSTEM SCAN COMPLETE • Team Aqua systems nominal.";
   }
-  if(word==="404"){
+  if(word==="404" && $("condition")){
     $("condition").textContent="404: Weather wandered off. Try refreshing.";
   }
 }
 
+const secretWords = ["aqua","killer","sus","elon","scan","weather","firebase"];
+
 document.addEventListener("keydown",e=>{
-  if(e.key.length===1){
+  if (e.key.length === 1) {
     typed=(typed+e.key.toLowerCase()).slice(-20);
-    ["aqua","killer","sus","elon","scan","weather","firebase"].forEach(word=>{
-      if(typed.endsWith(word)){triggerSecret(word);typed="";}
+    secretWords.forEach(word=>{
+      if(typed.endsWith(word)){ triggerSecret(word); typed=""; }
     });
-  }
 
-  if(e.key==="Escape") closeSecrets();
-});
-
-// Click the Team Aqua logo 7 times for the secret vault.
-document.querySelector(".brand").addEventListener("click",e=>{
-  e.preventDefault();
-  logoClicks++;
-  clearTimeout(logoClickTimer);
-  logoClickTimer=setTimeout(()=>logoClicks=0,1800);
-  if(logoClicks>=7){
-    logoClicks=0;
-    openSecrets();
-  }
-});
-
-// Click the weather condition 5 times for a tiny weather-system joke.
-$("condition").addEventListener("click",()=>{
-  conditionClicks++;
-  clearTimeout(conditionClickTimer);
-  conditionClickTimer=setTimeout(()=>conditionClicks=0,1800);
-  document.body.animate([{transform:"translateY(0)"},{transform:"translateY(2px)"},{transform:"translateY(0)"}],{duration:450});
-  if(conditionClicks>=5){
-    conditionClicks=0;
-    showSecret("🌦️ Weather has been bonked. Forecast accuracy: emotionally improved.");
-  }
-});
-
-// Tiny hidden command: type 'aqua-secret' to open the vault.
-let secretTyped="";
-document.addEventListener("keydown",e=>{
-  if(e.key.length===1){
     secretTyped=(secretTyped+e.key.toLowerCase()).slice(-11);
     if(secretTyped.endsWith("aqua-secret")){
       secretTyped="";
       openSecrets();
     }
   }
+
+  if (e.key.length !== 1) {
+    keyBuffer.push(e.key.length===1 ? e.key.toLowerCase() : e.key);
+    if(keyBuffer.length>10) keyBuffer.shift();
+  }
+
+  if (e.key.toLowerCase()==="a") {
+    rapidA++;
+    clearTimeout(rapidATimer);
+    rapidATimer=setTimeout(()=>rapidA=0,1200);
+    if(rapidA>=3){
+      rapidA=0;
+      document.body.animate([{filter:"brightness(1)"},{filter:"brightness(1.8)"},{filter:"brightness(1)"}],{duration:500});
+    }
+  }
+
+  if(keyBuffer.join(" ")===KONAMI){
+    konamiUnlocked=true;
+    const devMenu = $("openDevFromMenu");
+    if (devMenu) devMenu.style.display="block";
+    const output = $("devOutput");
+    if (output) output.textContent="Konami sequence accepted. Developer Panel unlocked in the menu.";
+    showSecret("🕹️ Konami accepted. Developer Panel unlocked in the menu.");
+  }
+
+  if(e.key==="Escape") closeSecrets();
 });
+
+// Click the Team Aqua logo 7 times for the secret vault.
+const brandEl = document.querySelector(".brand");
+if (brandEl) {
+  brandEl.addEventListener("click",e=>{
+    e.preventDefault();
+    logoClicks++;
+    clearTimeout(logoClickTimer);
+    logoClickTimer=setTimeout(()=>logoClicks=0,1800);
+    if(logoClicks>=7){
+      logoClicks=0;
+      openSecrets();
+    }
+  });
+}
+
+// Click the weather condition 5 times for a tiny weather-system joke.
+const conditionEl = $("condition");
+if (conditionEl) {
+  conditionEl.addEventListener("click",()=>{
+    conditionClicks++;
+    clearTimeout(conditionClickTimer);
+    conditionClickTimer=setTimeout(()=>conditionClicks=0,1800);
+    document.body.animate([{transform:"translateY(0)"},{transform:"translateY(2px)"},{transform:"translateY(0)"}],{duration:450});
+    if(conditionClicks>=5){
+      conditionClicks=0;
+      showSecret("🌦️ Weather has been bonked. Forecast accuracy: emotionally improved.");
+    }
+  });
+}
 
 /* ---------- STARTUP ---------- */
 document.addEventListener("DOMContentLoaded",()=>{
   detectLocation();
   updateMusicState();
   startBassPulse();
-  setTimeout(()=>$("splash").classList.add("hide"),1800);
+  setTimeout(()=>{
+    const splash = $("splash");
+    if (splash) splash.classList.add("hide");
+  },1800);
 });
 
 setInterval(()=>{
