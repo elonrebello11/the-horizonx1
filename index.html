@@ -79,7 +79,7 @@ body::before{
 .splash-inner p{margin:0;color:var(--muted)}
 .loader{width:190px;height:4px;margin:22px auto 0;background:#15263b;border-radius:99px;overflow:hidden}
 .loader span{display:block;width:45%;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));animation:load 1.5s infinite ease-in-out}
-@keyframes load{from{transform:translateX(-120%)}to{transform:translateX(330%)}}
+@keyframes load{from{transform:translateX(-120%)}to{transform:translateX(330%)} }
 @keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 80px rgba(67,224,209,.22)}}
 
 .topbar{
@@ -138,6 +138,37 @@ body::before{
 }
 .drawer-overlay.open{opacity:1;visibility:visible}
 
+.dev-panel{
+  position:fixed;right:18px;bottom:18px;z-index:1000;
+  width:min(280px,calc(100vw - 24px));
+  background:linear-gradient(180deg,rgba(8,18,30,.98),rgba(10,17,27,.94));
+  border:1px solid rgba(85,183,255,.28);
+  border-radius:18px;
+  box-shadow:0 30px 60px rgba(0,0,0,.32);
+  overflow:hidden;
+}
+.dev-panel.collapsed .dev-panel-body{display:none}
+.dev-panel-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 14px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.02);
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#bae9ff;font-weight:800;
+}
+.dev-mini-btn{
+  border:1px solid rgba(85,183,255,.24);background:rgba(85,183,255,.08);color:#bdeaff;
+  border-radius:8px;padding:5px 8px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+}
+.dev-panel-body{padding:12px}
+.dev-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dev-btn{
+  width:100%;padding:9px 8px;border-radius:10px;border:1px solid var(--line);
+  background:rgba(255,255,255,.03);color:#ebf6ff;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.dev-btn:hover{border-color:rgba(85,183,255,.4);background:rgba(85,183,255,.06)}
+.dev-status{margin-top:12px;border:1px solid rgba(67,224,209,.18);background:rgba(67,224,209,.04);padding:10px;border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6}
+.dev-status strong{color:#cfefff}
+
 main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
 .hero{
   display:grid;grid-template-columns:1.35fr .65fr;gap:20px;
@@ -158,9 +189,7 @@ main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
   content:"";position:absolute;width:260px;height:260px;right:-90px;top:-110px;
   background:radial-gradient(circle,rgba(85,183,255,.2),transparent 68%);
 }
-.eyebrow{
-  color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
-}
+.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
 .hero h1{font-size:clamp(38px,7vw,72px);line-height:.98;margin:14px 0 18px;max-width:780px}
 .hero h1 span{background:linear-gradient(90deg,#fff,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p{max-width:680px;color:var(--muted);line-height:1.75;font-size:16px}
@@ -188,19 +217,11 @@ main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
 
 .location{color:var(--muted);margin:0 0 18px;padding-left:3px}
 
-.grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
-}
-.card{
-  min-width:0;border-radius:22px;padding:22px;
-  transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;
-}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{min-width:0;border-radius:22px;padding:22px;transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease}
 .card:hover{transform:translateY(-5px);border-color:rgba(85,183,255,.3);box-shadow:0 25px 70px rgba(0,0,0,.38)}
 .card-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.icon{
-  width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
-  background:rgba(255,255,255,.05);font-size:23px;
-}
+.icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.05);font-size:23px}
 .badge{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .label{margin-top:20px;color:#c6d5e5;font-size:14px}
 .value{font-size:clamp(30px,4vw,42px);font-weight:850;margin:7px 0 5px;overflow-wrap:anywhere}
@@ -208,9 +229,7 @@ main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
 .temperature{color:var(--yellow)} .humidity{color:var(--blue)} .wind{color:var(--purple)} .pressure{color:var(--green)}
 .info{color:var(--muted);line-height:1.7;font-size:13px}
 
-.section{
-  border-radius:24px;padding:24px;margin-top:18px;
-}
+.section{border-radius:24px;padding:24px;margin-top:18px}
 .section-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:12px}
 .section h2{margin:0;font-size:20px}
 .pill{padding:7px 10px;border-radius:999px;background:rgba(85,183,255,.08);color:#9bd5ff;font-size:11px;border:1px solid rgba(85,183,255,.14)}
@@ -222,15 +241,9 @@ main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
 .track-title{font-size:18px;font-weight:750}
 .track-meta{color:var(--muted);font-size:13px;margin-top:5px}
 .music-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.control-btn{
-  width:42px;height:42px;border:1px solid var(--line);border-radius:13px;
-  background:rgba(255,255,255,.04);color:white;
-}
+.control-btn{width:42px;height:42px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.04);color:white}
 .control-btn:hover{border-color:rgba(85,183,255,.4)}
-.track-select{
-  min-width:220px;border:1px solid var(--line);border-radius:13px;
-  background:#0a1627;color:white;padding:11px 12px;outline:none;
-}
+.track-select{min-width:220px;border:1px solid var(--line);border-radius:13px;background:#0a1627;color:white;padding:11px 12px;outline:none}
 .volume{width:110px;accent-color:var(--cyan)}
 
 footer{text-align:center;color:#61758e;padding:30px 15px;font-size:12px}
@@ -263,6 +276,7 @@ footer b{color:#8fa4bd}
   .music-controls{justify-content:flex-start}
   .track-select{min-width:0;width:100%}
   .volume{width:100%}
+  .dev-panel{right:12px;bottom:12px}
 }
 @media(max-width:390px){
   .grid{grid-template-columns:1fr}
@@ -321,6 +335,26 @@ footer b{color:#8fa4bd}
     Developer tools are intentionally not present here.
   </div>
 </aside>
+
+<div class="dev-panel" id="devPanel">
+  <div class="dev-panel-head">
+    <span>Dev Panel</span>
+    <button class="dev-mini-btn" id="devToggle">Hide</button>
+  </div>
+  <div class="dev-panel-body">
+    <div class="dev-btn-grid">
+      <button class="dev-btn" data-action="refresh">Refresh</button>
+      <button class="dev-btn" data-action="music">Music</button>
+      <button class="dev-btn" data-action="status">Status</button>
+      <button class="dev-btn" data-action="reset">Reset</button>
+    </div>
+    <div class="dev-status">
+      <strong>ESP32:</strong> Online<br>
+      <strong>Weather:</strong> Connected<br>
+      <strong>Mode:</strong> Team Aqua Dashboard
+    </div>
+  </div>
+</div>
 
 <main id="dashboard">
   <section class="hero">
@@ -487,6 +521,38 @@ document.querySelectorAll("[data-scroll]").forEach(btn => {
   btn.addEventListener("click", () => {
     closeDrawer();
     $(btn.dataset.scroll).scrollIntoView({behavior:"smooth"});
+  });
+});
+
+const devPanel = $("devPanel");
+const devToggle = $("devToggle");
+devToggle.addEventListener("click", () => {
+  devPanel.classList.toggle("collapsed");
+  devToggle.textContent = devPanel.classList.contains("collapsed") ? "Show" : "Hide";
+});
+
+document.querySelectorAll("[data-action]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const action = btn.dataset.action;
+
+    if (action === "refresh") {
+      $("refreshButton").click();
+    }
+
+    if (action === "music") {
+      const auto = $("autoMusicToggle");
+      auto.checked = !auto.checked;
+      auto.dispatchEvent(new Event("change"));
+    }
+
+    if (action === "status") {
+      const status = $("firebaseStatusText").textContent;
+      $("firebaseStatusText").textContent = status.includes("Firebase") ? "Developer status: OK" : "Developer status: ACTIVE";
+    }
+
+    if (action === "reset") {
+      location.reload();
+    }
   });
 });
 
