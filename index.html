@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07111f">
+<meta name="description" content="Team Aqua Smart Weather Station">
 <title>Team Aqua • Smart Weather Station</title>
+
 <style>
 :root{
   --bg:#050b14;
-  --panel:rgba(13,25,43,.75);
+  --panel:rgba(13,25,43,.72);
+  --panel-strong:#0d1a2d;
   --line:rgba(148,163,184,.16);
   --text:#f8fbff;
   --muted:#8fa4bd;
@@ -17,198 +21,591 @@
   --purple:#a78bfa;
   --green:#5ee7a0;
   --danger:#ff7185;
-  --shadow:0 24px 70px rgba(0,0,0,.35);
+  --shadow:0 24px 70px rgba(0,0,0,.28);
+  --radius:24px;
 }
+
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{
-  margin:0;min-height:100vh;color:var(--text);
-  font-family:Inter,system-ui,sans-serif;
-  background:linear-gradient(180deg,#07111f 0%,#050b14 55%,#040810 100%);
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(55,170,255,.12),transparent 30%),
+    radial-gradient(circle at 90% 20%,rgba(67,224,209,.09),transparent 28%),
+    linear-gradient(180deg,#07111f 0%,#050b14 55%,#040810 100%);
   overflow-x:hidden;
 }
+button,input,select{font:inherit}
+button{cursor:pointer}
 
-/* Splash Screen */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(to bottom,black,transparent 80%);
+}
+
+/* SPLASH */
 #splash{
-  position:fixed;inset:0;background:#050b14;z-index:9999;
-  display:grid;place-items:center;transition:opacity .5s ease,visibility .5s ease;
+  position:fixed;
+  inset:0;
+  z-index:2000;
+  display:grid;
+  place-items:center;
+  background:#050b14;
+  transition:opacity .7s ease,visibility .7s ease;
 }
 #splash.hide{opacity:0;visibility:hidden}
-.splash-content{text-align:center}
-.splash-logo{font-size:48px;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.splash-inner{text-align:center}
+.splash-orb{
+  width:92px;height:92px;margin:auto;
+  display:grid;place-items:center;
+  border:1px solid rgba(85,183,255,.35);
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(85,183,255,.24),transparent 65%);
+  box-shadow:0 0 60px rgba(85,183,255,.18);
+  font-size:42px;
+  animation:pulse 1.8s ease-in-out infinite;
+}
+.splash-inner h1{margin:22px 0 8px;font-size:28px}
+.splash-inner p{margin:0;color:var(--muted)}
+.loader{width:190px;height:4px;margin:22px auto 0;background:#15263b;border-radius:99px;overflow:hidden}
+.loader span{display:block;width:45%;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));animation:load 1.5s infinite ease-in-out}
+@keyframes load{from{transform:translateX(-120%)}to{transform:translateX(330%)}}
+@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 80px rgba(67,224,209,.22)}}
 
-/* Topbar */
+/* HEADER */
 .topbar{
   position:sticky;top:0;z-index:900;
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 24px;background:rgba(5,11,20,.85);
-  backdrop-filter:blur(18px);border-bottom:1px solid var(--line);
+  padding:14px clamp(16px,4vw,48px);
+  background:rgba(5,11,20,.72);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
 .brand-mark{
-  width:42px;height:42px;border-radius:14px;display:grid;place-items:center;
+  width:42px;height:42px;border-radius:14px;
+  display:grid;place-items:center;
   background:linear-gradient(135deg,rgba(85,183,255,.2),rgba(67,224,209,.13));
-  border:1px solid rgba(85,183,255,.24);font-size:22px;
+  border:1px solid rgba(85,183,255,.24);
+  font-size:22px;
 }
+.brand strong{display:block;font-size:15px;letter-spacing:.02em}
+.brand small{display:block;color:var(--muted);margin-top:2px}
 .menu-btn{
-  background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);
-  padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+  width:46px;height:46px;border:1px solid var(--line);
+  border-radius:15px;background:rgba(255,255,255,.04);color:white;
+  display:grid;place-items:center;transition:.25s ease;
 }
+.menu-btn:hover{transform:translateY(-2px);border-color:rgba(85,183,255,.45);background:rgba(85,183,255,.08)}
+.menu-lines{width:20px}
+.menu-lines span{display:block;height:2px;margin:4px 0;border-radius:5px;background:#fff}
 
-/* Main Layout */
-main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
-.hero{
-  background:linear-gradient(145deg,rgba(16,31,52,.9),rgba(9,19,33,.85));
-  border:1px solid var(--line);border-radius:28px;padding:36px;box-shadow:var(--shadow);
-  position:relative;overflow:hidden;margin-bottom:24px;
+/* NAV DRAWER */
+.drawer{
+  position:fixed;top:0;right:0;z-index:1200;
+  width:min(360px,92vw);height:100vh;
+  padding:22px;
+  background:rgba(7,17,31,.96);
+  backdrop-filter:blur(22px);
+  border-left:1px solid var(--line);
+  transform:translateX(105%);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  box-shadow:-30px 0 80px rgba(0,0,0,.3);
 }
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
-@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:550px){.grid{grid-template-columns:1fr}}
-
-.card{
-  background:linear-gradient(145deg,rgba(16,31,52,.82),rgba(9,19,33,.76));
-  border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:var(--shadow);
+.drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;justify-content:space-between;align-items:center}
+.drawer h2{margin:0}
+.close-btn{border:0;background:transparent;color:#9fb2c8;font-size:28px}
+.drawer-nav{display:grid;gap:10px;margin-top:28px}
+.drawer-nav button{
+  text-align:left;border:1px solid var(--line);border-radius:15px;
+  background:rgba(255,255,255,.035);color:#eaf4ff;padding:14px 16px;
+  transition:.2s ease;
 }
-.label{color:#c6d5e5;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-top:10px}
-.value{font-size:36px;font-weight:850;margin:10px 0}
-.unit{font-size:15px;color:var(--muted)}
-.temperature{color:var(--yellow)} .humidity{color:var(--blue)} .wind{color:var(--purple)} .pressure{color:var(--green)}
-
-/* Status Bar */
-.status{
-  display:flex;align-items:center;gap:10px;margin:20px 0;padding:13px 18px;
-  border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.035);
-}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--yellow)}
-.status.ok .dot{background:var(--green)}
-.status.bad .dot{background:var(--danger)}
-
-/* Drawer Navigation */
+.drawer-nav button:hover{border-color:rgba(85,183,255,.4);transform:translateX(3px)}
+.drawer-note{margin-top:28px;padding:15px;border-radius:16px;background:rgba(67,224,209,.06);border:1px solid rgba(67,224,209,.12);color:var(--muted);font-size:13px;line-height:1.6}
 .drawer-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
-  z-index:950;opacity:0;visibility:hidden;transition:.3s;
+  position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.42);
+  opacity:0;visibility:hidden;transition:.3s ease;
 }
 .drawer-overlay.open{opacity:1;visibility:visible}
-.drawer{
-  position:fixed;top:0;right:-320px;width:320px;height:100%;
-  background:#091322;border-left:1px solid var(--line);z-index:960;
-  transition:.3s;padding:24px;display:flex;flex-direction:column;gap:20px;
-}
-.drawer.open{right:0}
-.drawer-header{display:flex;justify-content:space-between;align-items:center}
-.close-drawer{background:none;border:0;color:var(--text);font-size:20px;cursor:pointer}
-.drawer-link{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:12px;text-align:left;cursor:pointer;font-weight:600}
 
-/* Dev Panel */
-.dev-panel{background:rgba(13,25,43,.5);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:24px}
-.dev-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-.dev-body{margin-top:15px;display:block}
-.dev-panel.collapsed .dev-body{display:none}
-button.action-btn{background:linear-gradient(135deg,#1976d2,#20a9a0);border:0;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;font-weight:600}
+/* MAIN */
+main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
+.hero{
+  display:grid;grid-template-columns:1.35fr .65fr;gap:20px;
+  align-items:stretch;
+}
+.hero-card,.mini-panel,.card,.section{
+  background:linear-gradient(145deg,rgba(16,31,52,.82),rgba(9,19,33,.76));
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(14px);
+}
+.hero-card{
+  position:relative;overflow:hidden;
+  padding:clamp(24px,5vw,52px);
+  border-radius:32px;
+}
+.hero-card::after{
+  content:"";position:absolute;width:260px;height:260px;right:-90px;top:-110px;
+  background:radial-gradient(circle,rgba(85,183,255,.2),transparent 68%);
+}
+.eyebrow{
+  color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+}
+.hero h1{font-size:clamp(38px,7vw,72px);line-height:.98;margin:14px 0 18px;max-width:780px}
+.hero h1 span{background:linear-gradient(90deg,#fff,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{max-width:680px;color:var(--muted);line-height:1.75;font-size:16px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.primary,.secondary{
+  border:1px solid transparent;border-radius:14px;padding:12px 17px;color:#fff;
+  transition:.25s ease;
+}
+.primary{background:linear-gradient(135deg,#1976d2,#20a9a0)}
+.secondary{background:rgba(255,255,255,.04);border-color:var(--line)}
+.primary:hover,.secondary:hover{transform:translateY(-2px)}
+.mini-stack{display:grid;gap:20px}
+.mini-panel{border-radius:24px;padding:22px}
+.mini-panel h3{margin:0 0 8px}
+.mini-value{font-size:32px;font-weight:800}
+.mini-sub{color:var(--muted);font-size:13px}
+.status{
+  display:flex;align-items:center;gap:10px;
+  margin:22px 0;padding:13px 15px;border:1px solid var(--line);
+  border-radius:16px;background:rgba(255,255,255,.035);color:#d9e7f5;
+}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);box-shadow:0 0 16px currentColor}
+.status.ok .dot{background:var(--green)}
+.status.bad .dot{background:var(--danger)}
+.location{color:var(--muted);margin:0 0 18px;padding-left:3px}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{
+  min-width:0;border-radius:22px;padding:22px;
+  transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;
+}
+.card:hover{transform:translateY(-5px);border-color:rgba(85,183,255,.3);box-shadow:0 25px 70px rgba(0,0,0,.38)}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.icon{
+  width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+  background:rgba(255,255,255,.05);font-size:23px;
+}
+.badge{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.label{margin-top:20px;color:#c6d5e5;font-size:14px}
+.value{font-size:clamp(30px,4vw,42px);font-weight:850;margin:7px 0 5px;overflow-wrap:anywhere}
+.unit{font-size:15px;color:var(--muted);font-weight:600}
+.temperature{color:var(--yellow)}
+.humidity{color:var(--blue)}
+.wind{color:var(--purple)}
+.pressure{color:var(--green)}
+.info{color:var(--muted);line-height:1.7;font-size:13px}
+
+.section{
+  border-radius:24px;padding:24px;margin-top:18px;
+}
+.section-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:12px}
+.section h2{margin:0;font-size:20px}
+.pill{padding:7px 10px;border-radius:999px;background:rgba(85,183,255,.08);color:#9bd5ff;font-size:11px;border:1px solid rgba(85,183,255,.14)}
+.data-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}
+.data-box{padding:15px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.025)}
+.data-box strong{display:block;margin-top:4px}
+
+/* MUSIC */
+.music-layout{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.track-title{font-size:18px;font-weight:750}
+.track-meta{color:var(--muted);font-size:13px;margin-top:5px}
+.music-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.control-btn{
+  width:42px;height:42px;border:1px solid var(--line);border-radius:13px;
+  background:rgba(255,255,255,.04);color:white;
+}
+.control-btn:hover{border-color:rgba(85,183,255,.4)}
+.track-select{
+  min-width:220px;border:1px solid var(--line);border-radius:13px;
+  background:#0a1627;color:white;padding:11px 12px;outline:none;
+}
+.volume{width:110px;accent-color:var(--cyan)}
+footer{text-align:center;color:#61758e;padding:30px 15px;font-size:12px}
+footer b{color:#8fa4bd}
+
+/* DEVELOPER PANEL */
+.dev-panel{
+  position:fixed;inset:0;z-index:1600;display:grid;place-items:center;
+  padding:18px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);
+  opacity:0;visibility:hidden;transition:.25s ease;
+}
+.dev-panel.open{opacity:1;visibility:visible}
+.dev-box{
+  width:min(620px,100%);max-height:90vh;overflow:auto;
+  border:1px solid rgba(85,183,255,.25);border-radius:26px;
+  background:#081423;padding:24px;box-shadow:0 30px 100px rgba(0,0,0,.5);
+}
+.dev-box h2{margin:0 0 8px}
+.dev-help{color:var(--muted);font-size:13px;line-height:1.6}
+.dev-form{display:grid;gap:10px;margin-top:18px}
+.dev-form input{
+  width:100%;border:1px solid var(--line);border-radius:13px;
+  padding:12px 13px;background:#07101d;color:#fff;outline:none;
+}
+.dev-form input:focus{border-color:rgba(85,183,255,.5)}
+.dev-actions{display:flex;gap:9px;flex-wrap:wrap}
+.dev-output{
+  margin-top:16px;min-height:90px;padding:14px;border-radius:16px;
+  background:#030912;border:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,monospace;
+  font-size:12px;white-space:pre-wrap;color:#a9c5de;
+}
+.close-dev{float:right;border:0;background:transparent;color:#8fa4bd;font-size:24px}
+
+/* MOBILE */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  main{width:min(100% - 20px,1180px);padding-top:20px}
+  .topbar{padding:11px 13px}
+  .brand small{display:none}
+  .hero-card{padding:25px;border-radius:25px}
+  .hero h1{font-size:43px}
+  .grid{grid-template-columns:1fr 1fr;gap:10px}
+  .card{padding:16px;border-radius:18px}
+  .value{font-size:31px}
+  .data-row{grid-template-columns:1fr}
+  .music-controls{justify-content:flex-start}
+  .track-select{min-width:0;width:100%}
+  .volume{width:100%}
+}
+@media(max-width:390px){.grid{grid-template-columns:1fr}}
+
+/* EASTER EGG INTERFACE */
+.secret-toast{
+  position:fixed;left:50%;bottom:26px;z-index:3000;
+  transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  max-width:min(92vw,560px);padding:13px 17px;border-radius:16px;
+  background:rgba(7,17,31,.94);border:1px solid rgba(85,183,255,.3);
+  box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(14px);
+  color:#eaf6ff;font-size:13px;text-align:center;transition:.3s ease;
+}
+.secret-toast.show{opacity:1;transform:translate(-50%,0)}
+.secret-overlay{
+  position:fixed;inset:0;z-index:2900;display:grid;place-items:center;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(10px);
+  opacity:0;visibility:hidden;transition:.25s ease;padding:20px;
+}
+.secret-overlay.show{opacity:1;visibility:visible}
+.secret-box{
+  width:min(560px,100%);padding:30px;border-radius:26px;text-align:center;
+  background:linear-gradient(145deg,#0d1a2d,#07111f);
+  border:1px solid rgba(85,183,255,.28);box-shadow:0 30px 100px rgba(0,0,0,.55);
+}
+.secret-box h2{margin:0 0 10px;font-size:28px}
+.secret-box p{color:var(--muted);line-height:1.7}
+.secret-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:20px 0;text-align:left}
+.secret-list div{padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.secret-list b{display:block}
+.secret-list span{font-size:11px;color:var(--muted)}
+@media(max-width:600px){.secret-list{grid-template-columns:1fr}}
+
+/* REDUCED MOTION */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+/* AUTO MUSIC TOGGLE */
+.auto-music-bar{display:flex;align-items:center;gap:9px;margin-left:auto;margin-right:10px}
+.auto-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#9fb2c8}
+.auto-toggle{position:relative;width:48px;height:28px}
+.auto-toggle input{opacity:0;width:0;height:0}
+.auto-slider{position:absolute;inset:0;border-radius:99px;background:#26384d;border:1px solid var(--line);transition:.25s}
+.auto-slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#9fb2c8;transition:.25s}
+.auto-toggle input:checked+.auto-slider{background:linear-gradient(90deg,#1976d2,#20a9a0)}
+.auto-toggle input:checked+.auto-slider:before{transform:translateX(20px);background:white}
+.welcome-panel{margin:22px 0;padding:18px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(85,183,255,.10),rgba(67,224,209,.07));border:1px solid rgba(85,183,255,.18)}
+.welcome-panel strong{font-size:18px}
+.welcome-panel p{margin:6px 0 0;color:var(--muted);line-height:1.6}
+.easter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+.easter-item{padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025)}
+.easter-item b{display:block;margin-bottom:4px}
+.easter-item span{font-size:12px;color:var(--muted)}
+@media(max-width:600px){.auto-label{display:none}.easter-grid{grid-template-columns:1fr}}
 </style>
 </head>
+
 <body>
 
-<!-- Splash Screen -->
 <div id="splash">
-  <div class="splash-content">
-    <div class="splash-logo">🌊</div>
-    <h2 style="color:var(--cyan);margin-top:10px;">TEAM AQUA</h2>
-    <p style="color:var(--muted);font-size:13px;">Initializing Smart Weather Station...</p>
+  <div class="splash-inner">
+    <div class="splash-orb">🌦️</div>
+    <h1>Team Aqua</h1>
+    <p>Initializing Smart Weather Station...</p>
+    <div class="loader"><span></span></div>
   </div>
 </div>
 
-<!-- Topbar -->
 <header class="topbar">
   <a class="brand" href="#">
     <div class="brand-mark">🌤️</div>
-    <div><strong>TEAM AQUA</strong><small style="color:var(--muted);display:block;">Smart Weather Station</small></div>
+    <div>
+      <strong>TEAM AQUA</strong>
+      <small>Smart Weather Station</small>
+    </div>
   </a>
-  <button class="menu-btn" id="menuButton">Menu ☰</button>
+
+  <div class="auto-music-bar" title="Automatic music">
+    <span class="auto-label">AUTO MUSIC</span>
+    <label class="auto-toggle">
+      <input id="autoMusicToggle" type="checkbox" checked>
+      <span class="auto-slider"></span>
+    </label>
+  </div>
+
+  <button class="menu-btn" id="menuButton" aria-label="Open menu">
+    <span class="menu-lines"><span></span><span></span><span></span></span>
+  </button>
 </header>
 
-<!-- Drawer -->
 <div class="drawer-overlay" id="drawerOverlay"></div>
-<div class="drawer" id="drawer">
-  <div class="drawer-header">
-    <h3>Navigation</h3>
-    <button class="close-drawer" id="closeDrawer">&times;</button>
-  </div>
-  <button class="drawer-link" data-scroll="dashboardSection">📊 Live Dashboard</button>
-  <button class="drawer-link" data-scroll="weatherSection">☁️ Regional Weather</button>
-  <button class="drawer-link" data-scroll="devSection">🛠️ Developer Diagnostics</button>
-</div>
 
-<main>
-  <!-- Firebase Status Banner -->
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>Menu</h2>
+    <button class="close-btn" id="closeDrawer" aria-label="Close menu">×</button>
+  </div>
+
+  <div class="drawer-nav">
+    <button data-scroll="dashboard">Dashboard</button>
+    <button data-scroll="weather">Online Weather</button>
+    <button data-scroll="music">Music</button>
+    <button data-scroll="privacy-policy">Privacy & Policy</button>
+    <button id="openDevFromMenu" style="display:none">Developer Panel</button>
+  </div>
+
+  <div class="drawer-note">
+    Team Aqua combines ESP32 sensor data with online weather information.
+    Developer tools are local browser features; they are not a security boundary.
+  </div>
+</aside>
+
+<main id="dashboard">
+
+  <section class="hero">
+    <div class="hero-card">
+      <div class="eyebrow">TEAM AQUA • LIVE SYSTEM</div>
+      <h1>Weather data, <span>beautifully connected.</span></h1>
+      <p>
+        A redesigned dashboard for the Smart Weather Station ecosystem.
+        Local temperature and humidity can come from the ESP32 through Firebase,
+        while wind and pressure come from online weather data.
+      </p>
+      <div class="hero-actions">
+        <button class="primary" id="refreshButton">Refresh weather</button>
+        <button class="secondary" id="heroMusicButton">Start music</button>
+      </div>
+    </div>
+
+    <div class="mini-stack">
+      <div class="mini-panel">
+        <div class="eyebrow">ESP32 LINK</div>
+        <div class="mini-value" id="heroSensor">Waiting</div>
+        <div class="mini-sub">Firebase sensor connection</div>
+      </div>
+      <div class="mini-panel">
+        <div class="eyebrow">LOCATION</div>
+        <div class="mini-value">📍</div>
+        <div class="mini-sub" id="location">Detecting your location...</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="welcome-panel" id="welcomePanel">
+    <strong>Welcome, Sir.</strong>
+    <p>Team Aqua Smart Weather Station is online. Automatic radio is ready, sensor link is standing by, and the dashboard is watching the sky.</p>
+  </section>
+
   <div class="status" id="firebaseStatus">
-    <span class="dot" id="firebaseDot"></span>
-    <span id="firebaseStatusText">Connecting to Firebase Realtime Database...</span>
+    <span class="dot"></span>
+    <span id="firebaseStatusText">Connecting to your ESP32...</span>
   </div>
 
-  <!-- Hero Section -->
-  <section class="hero" id="dashboardSection">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;">
+  <section class="grid">
+    <div class="card">
+      <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>
+      <div class="label">Temperature</div>
+      <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>
+      <div class="info">Local DHT22 sensor</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><div class="icon">💧</div><span class="badge">ESP32</span></div>
+      <div class="label">Humidity</div>
+      <div class="value humidity" id="humidity">-- <span class="unit">%</span></div>
+      <div class="info">Local DHT22 sensor</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><div class="icon">💨</div><span class="badge">ONLINE</span></div>
+      <div class="label">Wind Speed</div>
+      <div class="value wind" id="wind">-- <span class="unit">km/h</span></div>
+      <div class="info">Online weather data</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><div class="icon">🌬️</div><span class="badge">ONLINE</span></div>
+      <div class="label">Air Pressure</div>
+      <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
+      <div class="info">Online weather data</div>
+    </div>
+  </section>
+
+  <section class="section" id="weather">
+    <div class="section-head">
+      <h2>Current Weather</h2>
+      <span class="pill">AUTO REFRESH • 10 MIN</span>
+    </div>
+
+    <p class="info" id="condition">Waiting for weather data...</p>
+
+    <div class="data-row">
+      <div class="data-box"><span class="info">Wind direction</span><strong id="windDirection">--</strong></div>
+      <div class="data-box"><span class="info">Feels like</span><strong id="feelsLike">-- °C</strong></div>
+      <div class="data-box"><span class="info">Precipitation</span><strong id="precipitation">-- mm</strong></div>
+    </div>
+
+    <div class="data-row">
+      <div class="data-box"><span class="info">Online temperature</span><strong id="onlineTemperature">-- °C</strong></div>
+      <div class="data-box"><span class="info">Online humidity</span><strong id="onlineHumidity">-- %</strong></div>
+      <div class="data-box"><span class="info">Last weather update</span><strong id="weatherUpdated">Waiting...</strong></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>ESP32 Device Status</h2>
+      <span class="pill" id="devicePill">WAITING</span>
+    </div>
+    <p class="info" id="deviceStatus">Waiting for sensor data...</p>
+    <div class="data-row">
+      <div class="data-box"><span class="info">Sensor type</span><strong>DHT22</strong></div>
+      <div class="data-box"><span class="info">Database</span><strong>Firebase Realtime Database</strong></div>
+      <div class="data-box"><span class="info">Last sensor update</span><strong id="sensorUpdated">Waiting...</strong></div>
+    </div>
+  </section>
+
+  <section class="section" id="music">
+    <div class="section-head">
+      <h2>Team Aqua Radio</h2>
+      <span class="pill">AUTOMATIC SOUNDTRACK</span>
+    </div>
+
+    <div class="music-layout">
       <div>
-        <span style="background:rgba(67,224,209,.1);color:var(--cyan);padding:5px 12px;border-radius:99px;font-size:11px;border:1px solid rgba(67,224,209,0.2);">LIVE ESP32 FEED</span>
-        <h1 style="margin:10px 0 5px;font-size:28px;">Team Aqua Command Center</h1>
-        <p style="color:var(--muted);margin:0;font-size:13px;" id="deviceStatus">Waiting for hardware telemetry...</p>
+        <div class="track-title">Bass Pulse</div>
+        <div class="track-meta">Team Aqua site soundtrack • Automatic playback</div>
       </div>
-      <button class="action-btn" id="heroMusicButton">♫ Toggle Audio</button>
+      <div class="music-controls">
+        <span class="pill" id="musicState">AUTO ON</span>
+        <input class="volume" id="volume" type="range" min="0" max="1" step=".01" value=".35" aria-label="Volume">
+      </div>
     </div>
 
-    <!-- Live Sensor Cards -->
-    <div class="grid">
-      <div class="card">
-        <div class="label">Temperature</div>
-        <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>
-        <div style="color:var(--muted);font-size:12px;">DHT22 Sensor (GPIO 4)</div>
-      </div>
-      <div class="card">
-        <div class="label">Humidity</div>
-        <div class="value humidity" id="humidity">-- <span class="unit">%</span></div>
-        <div style="color:var(--muted);font-size:12px;">Relative Moisture</div>
-      </div>
-      <div class="card" id="weatherSection">
-        <div class="label">Wind Speed</div>
-        <div class="value wind" id="wind">-- <span class="unit">km/h</span></div>
-        <div style="color:var(--muted);font-size:12px;" id="windDirection">Direction: --</div>
-      </div>
-      <div class="card">
-        <div class="label">Air Pressure</div>
-        <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
-        <div style="color:var(--muted);font-size:12px;" id="location">📍 Loading location...</div>
-      </div>
-    </div>
+    <p class="info" style="margin-bottom:0">
+      Music is controlled by the AUTO MUSIC switch at the top. Browser autoplay restrictions may require an initial click.
+    </p>
+
+    <audio id="bassPulseAudio" preload="auto" loop>
+      <source src="./Bass%20Pulse.mp3" type="audio/mpeg">
+    </audio>
   </section>
 
-  <!-- Developer Diagnostics Panel -->
-  <section class="dev-panel" id="devSection">
-    <div class="dev-header" id="devToggle">
-      <h3 style="margin:0;font-size:16px;color:var(--cyan);">🛠️ Developer Diagnostics & Controls</h3>
-      <span style="font-size:13px;color:var(--muted);">Hide</span>
-    </div>
-    <div class="dev-body">
-      <p style="color:var(--muted);font-size:13px;margin-top:0;">System health, audio controls, and data sync metrics.</p>
-      <div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-top:15px;">
-        <button class="action-btn" id="refreshButton">Force Refresh Data</button>
-        <label style="font-size:13px;display:flex;align-items:center;gap:8px;">
-          <input type="checkbox" id="autoMusicToggle"> Ambient Audio FX
-        </label>
-        <span style="font-size:13px;color:var(--muted);">Status: <strong id="musicState" style="color:var(--text);">OFF</strong></span>
-      </div>
-      <div style="margin-top:15px;font-size:12px;color:var(--muted);">
-        Last Sensor Update: <span id="sensorUpdated">Never</span> | Weather Updated: <span id="weatherUpdated">Never</span>
-      </div>
-    </div>
-  </section>
 </main>
 
-<!-- Hidden Audio Element -->
-<audio id="bassPulseAudio" loop src="https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg"></audio>
+<section class="section" id="privacy-policy">
+  <div class="section-head">
+    <h2>Privacy & Content Policy</h2>
+    <span class="pill">TEAM AQUA</span>
+  </div>
 
-<!-- Scripts -->
+  <p class="info">
+    Hello, this is Elon R from Team Aqua. We created and maintain this Smart Weather Station website as part of our project.
+  </p>
+
+  <p class="info">
+    All original content, designs, code, graphics, and other materials created by Team Aqua remain the property of their respective owners. Unauthorized copying, reproduction, distribution, or use of our original work without permission is not allowed.
+  </p>
+
+  <p class="info">
+    Weather information displayed on this website is obtained from <strong>Open-Meteo</strong>. Team Aqua is not affiliated with, sponsored by, or officially associated with Open-Meteo.
+  </p>
+
+  <p class="info" style="margin-bottom:0">
+    This website is a student project created for educational and demonstration purposes.
+  </p>
+</section>
+
+<footer>
+  <b>Team Aqua • Smart Weather Station</b><br>
+  ESP32 • Firebase • Open-Meteo • Responsive Website<br>
+  Made by Killer Studios
+</footer>
+
+<div class="secret-toast" id="secretToast" role="status" aria-live="polite"></div>
+
+<div class="secret-overlay" id="secretOverlay" aria-hidden="true">
+  <div class="secret-box">
+    <button class="close-dev" id="closeSecrets" aria-label="Close secrets">×</button>
+    <h2>AQUA SECRET VAULT</h2>
+    <p>You found the unofficial Team Aqua nonsense department.</p>
+
+    <div class="secret-list">
+      <div><b>↑ ↑ ↓ ↓ ← → ← → B A</b><span>Konami developer unlock</span></div>
+      <div><b>Type: AQUA</b><span>Hydration protocol</span></div>
+      <div><b>Type: SUS</b><span>Definitely normal weather</span></div>
+      <div><b>Type: KILLER</b><span>Studio mode</span></div>
+      <div><b>Type: 404</b><span>Weather not found</span></div>
+      <div><b>Click the logo 7×</b><span>Secret vault</span></div>
+    </div>
+
+    <button class="primary" id="secretCloseButton">Return to weather</button>
+  </div>
+</div>
+
+<div class="dev-panel" id="devPanel" aria-hidden="true">
+  <div class="dev-box">
+    <button class="close-dev" id="closeDev" aria-label="Close developer panel">×</button>
+    <h2>Developer Console</h2>
+
+    <p class="dev-help">
+      Local developer panel. Enter the Konami sequence first, then the developer password.
+      This is a UI feature, not real authentication.
+    </p>
+
+    <div class="dev-form">
+      <input id="konamiInput" autocomplete="off" placeholder="Konami code: ↑ ↑ ↓ ↓ ← → ← → B A">
+      <input id="devPassword" type="password" autocomplete="off" placeholder="Developer password">
+      <input id="mobileCommand" autocomplete="off" placeholder="Mobile admin command">
+      <div class="dev-actions">
+        <button class="primary" id="unlockDev">Unlock</button>
+        <button class="secondary" id="runCode">Run code</button>
+        <button class="secondary" id="clearConsole">Clear</button>
+      </div>
+      <input id="actionCode" autocomplete="off" placeholder="System code e.g. AQUA-REFRESH">
+    </div>
+
+    <div class="dev-output" id="devOutput">Console ready.</div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
@@ -226,14 +623,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const weatherRef = ref(database, "weatherStation");
-
 const $ = id => document.getElementById(id);
 
-// Drawer Navigation
+/* NAV DRAWER */
 const drawer = $("drawer");
 const overlay = $("drawerOverlay");
-const openDrawer = () => { drawer.classList.add("open"); overlay.classList.add("open"); };
-const closeDrawer = () => { drawer.classList.remove("open"); overlay.classList.remove("open"); };
+
+const openDrawer = () => {
+  drawer.classList.add("open");
+  overlay.classList.add("open");
+};
+
+const closeDrawer = () => {
+  drawer.classList.remove("open");
+  overlay.classList.remove("open");
+};
+
 $("menuButton").addEventListener("click", openDrawer);
 $("closeDrawer").addEventListener("click", closeDrawer);
 overlay.addEventListener("click", closeDrawer);
@@ -245,107 +650,538 @@ document.querySelectorAll("[data-scroll]").forEach(btn => {
   });
 });
 
-// Dev Panel Toggle
-const devPanel = $("devSection");
-const devToggle = $("devToggle");
-devToggle.addEventListener("click", () => {
-  devPanel.classList.toggle("collapsed");
-});
-
-// Listen to Live Firebase Database Updates
+/* FIREBASE SENSOR DATA */
 onValue(weatherRef, snapshot => {
   const data = snapshot.val();
+
   if (!data) {
-    $("firebaseStatusText").textContent = "Connected to Firebase, waiting for sensor data at /weatherStation...";
-    $("firebaseStatus").className = "status";
+    $("firebaseStatusText").textContent = "Waiting for ESP32 readings...";
+    $("firebaseStatus").classList.remove("ok");
+    $("heroSensor").textContent = "Waiting";
+    $("deviceStatus").textContent = "No sensor data received yet.";
+    $("devicePill").textContent = "WAITING";
     return;
   }
 
   if (typeof data.temperature === "number") {
-    $("temperature").innerHTML = `${data.temperature.toFixed(1)} <span class="unit">°C</span>`;
-  }
-  if (typeof data.humidity === "number") {
-    $("humidity").innerHTML = `${data.humidity.toFixed(0)} <span class="unit">%</span>`;
+    $("temperature").innerHTML =
+      `${data.temperature.toFixed(1)} <span class="unit">°C</span>`;
   }
 
-  $("firebaseStatusText").textContent = "Firebase connected • Live hardware stream active";
-  $("firebaseStatus").className = "status ok";
-  $("deviceStatus").textContent = "Live telemetry streaming successfully from ESP32.";
+  if (typeof data.humidity === "number") {
+    $("humidity").innerHTML =
+      `${data.humidity.toFixed(0)} <span class="unit">%</span>`;
+  }
+
+  $("firebaseStatusText").textContent = "Firebase connected";
+  $("firebaseStatus").classList.add("ok");
+  $("firebaseStatus").classList.remove("bad");
+  $("heroSensor").textContent = "Online";
+  $("devicePill").textContent = "ONLINE";
+  $("deviceStatus").textContent = "Sensor readings received from the ESP32.";
   $("sensorUpdated").textContent = new Date().toLocaleTimeString();
+
 }, error => {
-  $("firebaseStatusText").textContent = "Firebase error: " + error.message;
-  $("firebaseStatus").className = "status bad";
+  $("firebaseStatusText").textContent = "Firebase error";
+  $("firebaseStatus").classList.add("bad");
+  $("devicePill").textContent = "ERROR";
+  $("deviceStatus").textContent = error.message;
 });
 
-// Open-Meteo Weather Integration
-function getDirection(degrees){
-  const directions=["N","NE","E","SE","S","SW","W","NW"];
-  return directions[Math.round(degrees/45)%8];
+/* ONLINE WEATHER */
+const conditionNames = {
+  0:"Clear sky",
+  1:"Mainly clear",
+  2:"Partly cloudy",
+  3:"Overcast",
+  45:"Fog",
+  48:"Depositing rime fog",
+  51:"Light drizzle",
+  53:"Moderate drizzle",
+  55:"Dense drizzle",
+  61:"Slight rain",
+  63:"Moderate rain",
+  65:"Heavy rain",
+  71:"Slight snowfall",
+  73:"Moderate snowfall",
+  75:"Heavy snowfall",
+  80:"Rain showers",
+  81:"Moderate rain showers",
+  82:"Violent rain showers",
+  95:"Thunderstorm",
+  96:"Thunderstorm with hail",
+  99:"Thunderstorm with heavy hail"
+};
+
+function getDirection(degrees) {
+  const directions = ["N","NE","E","SE","S","SW","W","NW"];
+  return directions[Math.round(degrees / 45) % 8];
 }
 
-async function loadWeather(lat, lon, name){
+let savedLatitude = null;
+let savedLongitude = null;
+let savedLocation = "Your location";
+
+async function loadWeather(latitude, longitude, locationName) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}` +
+    `&longitude=${longitude}` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl` +
+    `&timezone=auto`;
+
   try {
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m,pressure_msl&timezone=auto`);
-    const data = await res.json();
-    const cur = data.current;
-    $("wind").innerHTML = `${Number(cur.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
-    $("pressure").innerHTML = `${Number(cur.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
-    $("windDirection").textContent = `Direction: ${getDirection(cur.wind_direction_10m)}`;
-    $("location").textContent = `📍 ${name}`;
+    $("condition").textContent = "Loading online weather...";
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Weather service unavailable");
+
+    const result = await response.json();
+    const current = result.current;
+
+    $("wind").innerHTML =
+      `${Number(current.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
+
+    $("pressure").innerHTML =
+      `${Number(current.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
+
+    $("condition").textContent =
+      conditionNames[current.weather_code] ?? "Weather condition unavailable";
+
+    $("windDirection").textContent = getDirection(current.wind_direction_10m);
+    $("feelsLike").textContent =
+      `${Number(current.apparent_temperature).toFixed(1)} °C`;
+
+    $("precipitation").textContent =
+      `${Number(current.precipitation).toFixed(1)} mm`;
+
+    $("onlineTemperature").textContent =
+      `${Number(current.temperature_2m).toFixed(1)} °C`;
+
+    $("onlineHumidity").textContent =
+      `${Number(current.relative_humidity_2m).toFixed(0)} %`;
+
     $("weatherUpdated").textContent = new Date().toLocaleTimeString();
-  } catch(e) {
-    $("location").textContent = "📍 Weather unavailable";
+    $("location").textContent = "📍 " + locationName;
+
+  } catch (error) {
+    $("condition").textContent = "Unable to load online weather.";
+    console.error(error);
   }
 }
 
-function detectLocation(){
-  if(!navigator.geolocation) {
-    loadWeather(19.076, 72.8777, "Default Location");
+function detectLocation() {
+  if (!navigator.geolocation) {
+    $("location").textContent = "Location is not supported by this browser.";
     return;
   }
-  navigator.geolocation.getCurrentPosition(pos => {
-    loadWeather(pos.coords.latitude, pos.coords.longitude, "Your Location");
+
+  navigator.geolocation.getCurrentPosition(async position => {
+    savedLatitude = position.coords.latitude;
+    savedLongitude = position.coords.longitude;
+    savedLocation = "Your current location";
+
+    await loadWeather(savedLatitude, savedLongitude, savedLocation);
+
   }, () => {
-    loadWeather(19.076, 72.8777, "Mumbai (Default)");
+    $("location").textContent =
+      "Location unavailable. Allow location access to load local weather.";
+  }, {
+    enableHighAccuracy: false,
+    timeout: 15000,
+    maximumAge: 600000
   });
 }
 
-// Audio Controls
-const audio = $("bassPulseAudio");
-const musicToggle = $("autoMusicToggle");
-const musicState = $("musicState");
+$("refreshButton").addEventListener("click", () => {
+  if (savedLatitude !== null && savedLongitude !== null) {
+    loadWeather(savedLatitude, savedLongitude, savedLocation);
+  } else {
+    detectLocation();
+  }
+});
 
-function updateMusicState(){
-  musicState.textContent = musicToggle.checked ? "ON" : "OFF";
+/* AUTOMATIC BASS PULSE MUSIC */
+const bassPulseAudio = $("bassPulseAudio");
+const autoMusicToggle = $("autoMusicToggle");
+const musicState = $("musicState");
+const volumeControl = $("volume");
+
+bassPulseAudio.volume = Number(volumeControl.value);
+
+function updateMusicState() {
+  musicState.textContent = autoMusicToggle.checked ? "AUTO ON" : "AUTO OFF";
+}
+
+async function startBassPulse() {
+  if (!autoMusicToggle.checked) return;
+
+  try {
+    await bassPulseAudio.play();
+  } catch (error) {
+    // Many browsers require a user gesture before playing audio.
+  }
+
+  updateMusicState();
 }
 
 $("heroMusicButton").addEventListener("click", async () => {
-  musicToggle.checked = !musicToggle.checked;
-  if(musicToggle.checked) {
-    try { await audio.play(); } catch(e){}
-  } else {
-    audio.pause();
+  autoMusicToggle.checked = true;
+
+  try {
+    await bassPulseAudio.play();
+    $("heroMusicButton").textContent = "Music playing";
+  } catch (error) {
+    $("heroMusicButton").textContent = "Start music";
   }
+
   updateMusicState();
 });
 
-musicToggle.addEventListener("change", async () => {
-  if(musicToggle.checked) {
-    try { await audio.play(); } catch(e){}
-  } else {
-    audio.pause();
-  }
+bassPulseAudio.addEventListener("error", () => {
+  musicState.textContent = "FILE ERROR";
+  console.error(
+    "Check that Bass Pulse.mp3 is beside index.html and named exactly Bass Pulse.mp3."
+  );
+});
+
+function stopBassPulse() {
+  bassPulseAudio.pause();
   updateMusicState();
+}
+
+autoMusicToggle.addEventListener("change", () => {
+  if (autoMusicToggle.checked) {
+    startBassPulse();
+  } else {
+    stopBassPulse();
+  }
 });
 
-$("refreshButton").addEventListener("click", () => {
-  detectLocation();
+volumeControl.addEventListener("input", () => {
+  bassPulseAudio.volume = Number(volumeControl.value);
 });
 
+["pointerdown","keydown","touchstart"].forEach(eventName => {
+  document.addEventListener(eventName, () => {
+    if (autoMusicToggle.checked && bassPulseAudio.paused) {
+      startBassPulse();
+    }
+  }, {passive:true});
+});
+
+/* DEVELOPER PANEL */
+const DEV_PASSWORD = "AQUA-DEV-2026";
+const KONAMI = [
+  "ArrowUp","ArrowUp",
+  "ArrowDown","ArrowDown",
+  "ArrowLeft","ArrowRight",
+  "ArrowLeft","ArrowRight","b","a"
+];
+
+let konamiUnlocked = false;
+let devUnlocked = false;
+let keyBuffer = [];
+let rapidA = 0;
+let rapidATimer = null;
+
+document.addEventListener("keydown", event => {
+  keyBuffer.push(
+    event.key.length === 1 ? event.key.toLowerCase() : event.key
+  );
+
+  if (keyBuffer.length > 10) keyBuffer.shift();
+
+  if (event.key.toLowerCase() === "a") {
+    rapidA++;
+    clearTimeout(rapidATimer);
+
+    rapidATimer = setTimeout(() => {
+      rapidA = 0;
+    }, 1200);
+
+    if (rapidA >= 3) {
+      rapidA = 0;
+
+      document.body.animate([
+        {filter:"brightness(1)"},
+        {filter:"brightness(1.8)"},
+        {filter:"brightness(1)"}
+      ], {duration:500});
+    }
+  }
+
+  if (keyBuffer.join(" ") === KONAMI.join(" ")) {
+    konamiUnlocked = true;
+    $("openDevFromMenu").style.display = "block";
+    $("devOutput").textContent =
+      "Konami sequence accepted. Developer Panel unlocked in the menu.";
+  }
+});
+
+function openDev() {
+  $("devPanel").classList.add("open");
+  $("devPanel").setAttribute("aria-hidden", "false");
+}
+
+function closeDev() {
+  $("devPanel").classList.remove("open");
+  $("devPanel").setAttribute("aria-hidden", "true");
+}
+
+$("openDevFromMenu").addEventListener("click", () => {
+  if (!konamiUnlocked) return;
+  closeDrawer();
+  openDev();
+});
+
+$("closeDev").addEventListener("click", closeDev);
+
+$("unlockDev").addEventListener("click", () => {
+  const password = $("devPassword").value.trim();
+
+  if (konamiUnlocked && password === DEV_PASSWORD) {
+    devUnlocked = true;
+    $("devOutput").textContent =
+      "DEV ACCESS GRANTED.\nSystem commands are enabled.";
+    return;
+  }
+
+  $("devOutput").textContent =
+    "Access denied. Complete the Konami sequence and enter the password.";
+});
+
+const commands = {
+  "AQUA-REFRESH": () => {
+    if (savedLatitude !== null) {
+      loadWeather(savedLatitude, savedLongitude, savedLocation);
+    } else {
+      detectLocation();
+    }
+    return "Weather refresh requested.";
+  },
+
+  "AQUA-MUSIC": () => {
+    autoMusicToggle.checked = !autoMusicToggle.checked;
+    autoMusicToggle.dispatchEvent(new Event("change"));
+
+    return autoMusicToggle.checked
+      ? "Automatic music enabled."
+      : "Automatic music disabled.";
+  },
+
+  "AQUA-SPLASH": () => {
+    $("splash").classList.remove("hide");
+    setTimeout(() => $("splash").classList.add("hide"), 1600);
+    return "Splash screen replayed.";
+  },
+
+  "AQUA-DARK": () => {
+    document.documentElement.style.setProperty("--blue", "#55b7ff");
+    return "Aqua theme refreshed.";
+  },
+
+  "AQUA-SECRET": () => {
+    openSecrets();
+    return "Secret vault opened.";
+  },
+
+  "AQUA-CHAOS": () => {
+    document.body.animate([
+      {filter:"hue-rotate(0deg)"},
+      {filter:"hue-rotate(180deg)"},
+      {filter:"hue-rotate(360deg)"}
+    ], {duration:1200});
+
+    showSecret("CHAOS MODE: scientifically unnecessary, visually excellent.");
+    return "Chaos pulse activated.";
+  },
+
+  "AQUA-404": () => {
+    triggerSecret("404");
+    return "Weather temporarily misplaced.";
+  }
+};
+
+$("runCode").addEventListener("click", () => {
+  if (!devUnlocked) {
+    $("devOutput").textContent = "Locked. Unlock the developer console first.";
+    return;
+  }
+
+  const code = $("actionCode").value.trim().toUpperCase();
+
+  if (commands[code]) {
+    $("devOutput").textContent = commands[code]();
+  } else {
+    $("devOutput").textContent =
+      `Unknown system code: ${code || "(empty)"}\nAvailable: ${Object.keys(commands).join(", ")}`;
+  }
+});
+
+$("clearConsole").addEventListener("click", () => {
+  $("devOutput").textContent = "Console cleared.";
+  $("actionCode").value = "";
+  $("konamiInput").value = "";
+  $("devPassword").value = "";
+});
+
+/* EASTER EGGS */
+const secretToast = $("secretToast");
+const secretOverlay = $("secretOverlay");
+
+let toastTimer = null;
+let typed = "";
+let logoClicks = 0;
+let logoClickTimer = null;
+let conditionClicks = 0;
+let conditionClickTimer = null;
+
+function showSecret(message) {
+  secretToast.textContent = message;
+  secretToast.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+    secretToast.classList.remove("show");
+  }, 3200);
+}
+
+function openSecrets() {
+  secretOverlay.classList.add("show");
+  secretOverlay.setAttribute("aria-hidden", "false");
+}
+
+function closeSecrets() {
+  secretOverlay.classList.remove("show");
+  secretOverlay.setAttribute("aria-hidden", "true");
+}
+
+$("closeSecrets").addEventListener("click", closeSecrets);
+$("secretCloseButton").addEventListener("click", closeSecrets);
+
+secretOverlay.addEventListener("click", event => {
+  if (event.target === secretOverlay) closeSecrets();
+});
+
+function triggerSecret(word) {
+  const messages = {
+    aqua: "AQUA PROTOCOL: 100% certified by absolutely nobody.",
+    killer: "KILLER STUDIOS MODE: +10 style points.",
+    sus: "SUSPICIOUS WEATHER DETECTED. It is looking at you.",
+    elon: "ELON MODE: maximum weather-station overengineering.",
+    scan: "SYSTEM SCAN COMPLETE: 0 aliens, 1 ESP32, infinite confidence.",
+    weather: "WEATHER.exe says: Bro, look outside.",
+    firebase: "FIREBASE CHECK: the cows are not on fire. Good news.",
+    404: "404 WEATHER NOT FOUND: Have you tried looking at the sky?"
+  };
+
+  if (messages[word]) showSecret(messages[word]);
+
+  if (word === "killer") {
+    document.title = "KILLER STUDIOS • Team Aqua";
+  }
+
+  if (word === "scan") {
+    $("welcomePanel").animate([
+      {transform:"scale(1)"},
+      {transform:"scale(1.03)"},
+      {transform:"scale(1)"}
+    ], {duration:700});
+
+    $("deviceStatus").textContent =
+      "SYSTEM SCAN COMPLETE • Team Aqua systems nominal.";
+  }
+
+  if (word === "404") {
+    $("condition").textContent =
+      "404: Weather wandered off. Try refreshing.";
+  }
+}
+
+document.addEventListener("keydown", event => {
+  if (event.key.length === 1) {
+    typed = (typed + event.key.toLowerCase()).slice(-20);
+
+    ["aqua","killer","sus","elon","scan","weather","firebase"].forEach(word => {
+      if (typed.endsWith(word)) {
+        triggerSecret(word);
+        typed = "";
+      }
+    });
+  }
+
+  if (event.key === "Escape") closeSecrets();
+});
+
+/* Click the logo seven times to open the secret vault. */
+$(".brand").addEventListener("click", event => {
+  event.preventDefault();
+
+  logoClicks++;
+  clearTimeout(logoClickTimer);
+
+  logoClickTimer = setTimeout(() => {
+    logoClicks = 0;
+  }, 1800);
+
+  if (logoClicks >= 7) {
+    logoClicks = 0;
+    openSecrets();
+  }
+});
+
+/* Click the weather condition five times for a secret joke. */
+$("condition").addEventListener("click", () => {
+  conditionClicks++;
+  clearTimeout(conditionClickTimer);
+
+  conditionClickTimer = setTimeout(() => {
+    conditionClicks = 0;
+  }, 1800);
+
+  document.body.animate([
+    {transform:"translateY(0)"},
+    {transform:"translateY(2px)"},
+    {transform:"translateY(0)"}
+  ], {duration:450});
+
+  if (conditionClicks >= 5) {
+    conditionClicks = 0;
+    showSecret("Weather has been bonked. Forecast accuracy: emotionally improved.");
+  }
+});
+
+/* Type aqua-secret to open the vault. */
+let secretTyped = "";
+
+document.addEventListener("keydown", event => {
+  if (event.key.length === 1) {
+    secretTyped = (secretTyped + event.key.toLowerCase()).slice(-11);
+
+    if (secretTyped.endsWith("aqua-secret")) {
+      secretTyped = "";
+      openSecrets();
+    }
+  }
+});
+
+/* STARTUP */
 window.addEventListener("load", () => {
   detectLocation();
-  setTimeout(() => $("splash").classList.add("hide"), 1500);
+  updateMusicState();
+
+  setTimeout(() => {
+    $("splash").classList.add("hide");
+  }, 1800);
 });
+
+/* Refresh online weather every ten minutes. */
+setInterval(() => {
+  if (savedLatitude !== null && savedLongitude !== null) {
+    loadWeather(savedLatitude, savedLongitude, savedLocation);
+  }
+}, 600000);
 </script>
 
 </body>
