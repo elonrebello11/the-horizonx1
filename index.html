@@ -1,494 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#07111f">
-<meta name="description" content="Team Aqua Smart Weather Station">
-<title>Team Aqua • Smart Weather Station</title>
-
-<style>
-:root{
-  --bg:#050b14;
-  --panel:rgba(13,25,43,.72);
-  --panel-strong:#0d1a2d;
-  --line:rgba(148,163,184,.16);
-  --text:#f8fbff;
-  --muted:#8fa4bd;
-  --blue:#55b7ff;
-  --cyan:#43e0d1;
-  --yellow:#ffd166;
-  --purple:#a78bfa;
-  --green:#5ee7a0;
-  --danger:#ff7185;
-  --shadow:0 24px 70px rgba(0,0,0,.28);
-  --radius:24px;
-}
-
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  margin:0;
-  min-height:100vh;
-  color:var(--text);
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-  background:
-    radial-gradient(circle at 10% 10%,rgba(55,170,255,.12),transparent 30%),
-    radial-gradient(circle at 90% 20%,rgba(67,224,209,.09),transparent 28%),
-    linear-gradient(180deg,#07111f 0%,#050b14 55%,#040810 100%);
-  overflow-x:hidden;
-}
-
-button,input,select{font:inherit}
-button{cursor:pointer}
-
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  background-image:
-    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
-  background-size:42px 42px;
-  mask-image:linear-gradient(to bottom,black,transparent 80%);
-}
-
-#splash{
-  position:fixed;
-  inset:0;
-  z-index:2000;
-  display:grid;
-  place-items:center;
-  background:#050b14;
-  transition:opacity .7s ease,visibility .7s ease;
-}
-#splash.hide{opacity:0;visibility:hidden}
-.splash-inner{text-align:center}
-.splash-orb{
-  width:92px;height:92px;margin:auto;
-  display:grid;place-items:center;
-  border:1px solid rgba(85,183,255,.35);
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(85,183,255,.24),transparent 65%);
-  box-shadow:0 0 60px rgba(85,183,255,.18);
-  font-size:42px;
-  animation:pulse 1.8s ease-in-out infinite;
-}
-.splash-inner h1{margin:22px 0 8px;font-size:28px}
-.splash-inner p{margin:0;color:var(--muted)}
-.loader{width:190px;height:4px;margin:22px auto 0;background:#15263b;border-radius:99px;overflow:hidden}
-.loader span{display:block;width:45%;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));animation:load 1.5s infinite ease-in-out}
-@keyframes load{from{transform:translateX(-120%)}to{transform:translateX(330%)} }
-@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 80px rgba(67,224,209,.22)}}
-
-.topbar{
-  position:sticky;top:0;z-index:900;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px clamp(16px,4vw,48px);
-  background:rgba(5,11,20,.72);
-  backdrop-filter:blur(18px);
-  border-bottom:1px solid var(--line);
-}
-.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
-.brand-mark{
-  width:42px;height:42px;border-radius:14px;
-  display:grid;place-items:center;
-  background:linear-gradient(135deg,rgba(85,183,255,.2),rgba(67,224,209,.13));
-  border:1px solid rgba(85,183,255,.24);
-  font-size:22px;
-}
-.brand strong{display:block;font-size:15px;letter-spacing:.02em}
-.brand small{display:block;color:var(--muted);margin-top:2px}
-.menu-btn{
-  width:46px;height:46px;border:1px solid var(--line);
-  border-radius:15px;background:rgba(255,255,255,.04);color:white;
-  display:grid;place-items:center;transition:.25s ease;
-}
-.menu-btn:hover{transform:translateY(-2px);border-color:rgba(85,183,255,.45);background:rgba(85,183,255,.08)}
-.menu-lines{width:20px}
-.menu-lines span{display:block;height:2px;margin:4px 0;border-radius:5px;background:#fff}
-
-.drawer{
-  position:fixed;top:0;right:0;z-index:1200;
-  width:min(360px,92vw);height:100vh;
-  padding:22px;
-  background:rgba(7,17,31,.96);
-  backdrop-filter:blur(22px);
-  border-left:1px solid var(--line);
-  transform:translateX(105%);
-  transition:transform .35s cubic-bezier(.2,.8,.2,1);
-  box-shadow:-30px 0 80px rgba(0,0,0,.3);
-}
-.drawer.open{transform:translateX(0)}
-.drawer-head{display:flex;justify-content:space-between;align-items:center}
-.drawer h2{margin:0}
-.close-btn{border:0;background:transparent;color:#9fb2c8;font-size:28px}
-.drawer-nav{display:grid;gap:10px;margin-top:28px}
-.drawer-nav button{
-  text-align:left;border:1px solid var(--line);border-radius:15px;
-  background:rgba(255,255,255,.035);color:#eaf4ff;padding:14px 16px;
-  transition:.2s ease;
-}
-.drawer-nav button:hover{border-color:rgba(85,183,255,.4);transform:translateX(3px)}
-.drawer-note{margin-top:28px;padding:15px;border-radius:16px;background:rgba(67,224,209,.06);border:1px solid rgba(67,224,209,.12);color:var(--muted);font-size:13px;line-height:1.6}
-.drawer-overlay{
-  position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.42);
-  opacity:0;visibility:hidden;transition:.3s ease;
-}
-.drawer-overlay.open{opacity:1;visibility:visible}
-
-.dev-panel{
-  position:fixed;right:18px;bottom:18px;z-index:1000;
-  width:min(280px,calc(100vw - 24px));
-  background:linear-gradient(180deg,rgba(8,18,30,.98),rgba(10,17,27,.94));
-  border:1px solid rgba(85,183,255,.28);
-  border-radius:18px;
-  box-shadow:0 30px 60px rgba(0,0,0,.32);
-  overflow:hidden;
-}
-.dev-panel.collapsed .dev-panel-body{display:none}
-.dev-panel-head{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:12px 14px;border-bottom:1px solid var(--line);
-  background:rgba(255,255,255,.02);
-  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#bae9ff;font-weight:800;
-}
-.dev-mini-btn{
-  border:1px solid rgba(85,183,255,.24);background:rgba(85,183,255,.08);color:#bdeaff;
-  border-radius:8px;padding:5px 8px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
-}
-.dev-panel-body{padding:12px}
-.dev-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.dev-btn{
-  width:100%;padding:9px 8px;border-radius:10px;border:1px solid var(--line);
-  background:rgba(255,255,255,.03);color:#ebf6ff;font-size:11px;letter-spacing:.08em;
-  text-transform:uppercase;
-}
-.dev-btn:hover{border-color:rgba(85,183,255,.4);background:rgba(85,183,255,.06)}
-.dev-status{margin-top:12px;border:1px solid rgba(67,224,209,.18);background:rgba(67,224,209,.04);padding:10px;border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6}
-.dev-status strong{color:#cfefff}
-
-main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
-.hero{
-  display:grid;grid-template-columns:1.35fr .65fr;gap:20px;
-  align-items:stretch;
-}
-.hero-card,.mini-panel,.card,.section{
-  background:linear-gradient(145deg,rgba(16,31,52,.82),rgba(9,19,33,.76));
-  border:1px solid var(--line);
-  box-shadow:var(--shadow);
-  backdrop-filter:blur(14px);
-}
-.hero-card{
-  position:relative;overflow:hidden;
-  padding:clamp(24px,5vw,52px);
-  border-radius:32px;
-}
-.hero-card::after{
-  content:"";position:absolute;width:260px;height:260px;right:-90px;top:-110px;
-  background:radial-gradient(circle,rgba(85,183,255,.2),transparent 68%);
-}
-.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
-.hero h1{font-size:clamp(38px,7vw,72px);line-height:.98;margin:14px 0 18px;max-width:780px}
-.hero h1 span{background:linear-gradient(90deg,#fff,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{max-width:680px;color:var(--muted);line-height:1.75;font-size:16px}
-.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
-.primary,.secondary{
-  border:1px solid transparent;border-radius:14px;padding:12px 17px;color:#fff;
-  transition:.25s ease;
-}
-.primary{background:linear-gradient(135deg,#1976d2,#20a9a0)}
-.secondary{background:rgba(255,255,255,.04);border-color:var(--line)}
-.primary:hover,.secondary:hover{transform:translateY(-2px)}
-.mini-stack{display:grid;gap:20px}
-.mini-panel{border-radius:24px;padding:22px}
-.mini-panel h3{margin:0 0 8px}
-.mini-value{font-size:32px;font-weight:800}
-.mini-sub{color:var(--muted);font-size:13px}
-.status{
-  display:flex;align-items:center;gap:10px;
-  margin:22px 0;padding:13px 15px;border:1px solid var(--line);
-  border-radius:16px;background:rgba(255,255,255,.035);color:#d9e7f5;
-}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);box-shadow:0 0 16px currentColor}
-.status.ok .dot{background:var(--green)}
-.status.bad .dot{background:var(--danger)}
-
-.location{color:var(--muted);margin:0 0 18px;padding-left:3px}
-
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.card{min-width:0;border-radius:22px;padding:22px;transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease}
-.card:hover{transform:translateY(-5px);border-color:rgba(85,183,255,.3);box-shadow:0 25px 70px rgba(0,0,0,.38)}
-.card-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.05);font-size:23px}
-.badge{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.label{margin-top:20px;color:#c6d5e5;font-size:14px}
-.value{font-size:clamp(30px,4vw,42px);font-weight:850;margin:7px 0 5px;overflow-wrap:anywhere}
-.unit{font-size:15px;color:var(--muted);font-weight:600}
-.temperature{color:var(--yellow)} .humidity{color:var(--blue)} .wind{color:var(--purple)} .pressure{color:var(--green)}
-.info{color:var(--muted);line-height:1.7;font-size:13px}
-
-.section{border-radius:24px;padding:24px;margin-top:18px}
-.section-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:12px}
-.section h2{margin:0;font-size:20px}
-.pill{padding:7px 10px;border-radius:999px;background:rgba(85,183,255,.08);color:#9bd5ff;font-size:11px;border:1px solid rgba(85,183,255,.14)}
-.data-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}
-.data-box{padding:15px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.025)}
-.data-box strong{display:block;margin-top:4px}
-
-.music-layout{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
-.track-title{font-size:18px;font-weight:750}
-.track-meta{color:var(--muted);font-size:13px;margin-top:5px}
-.music-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.control-btn{width:42px;height:42px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.04);color:white}
-.control-btn:hover{border-color:rgba(85,183,255,.4)}
-.track-select{min-width:220px;border:1px solid var(--line);border-radius:13px;background:#0a1627;color:white;padding:11px 12px;outline:none}
-.volume{width:110px;accent-color:var(--cyan)}
-
-footer{text-align:center;color:#61758e;padding:30px 15px;font-size:12px}
-footer b{color:#8fa4bd}
-
-.auto-music-bar{display:flex;align-items:center;gap:9px;margin-left:auto;margin-right:10px}
-.auto-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#9fb2c8}
-.auto-toggle{position:relative;width:48px;height:28px}
-.auto-toggle input{opacity:0;width:0;height:0}
-.auto-slider{position:absolute;inset:0;border-radius:99px;background:#26384d;border:1px solid var(--line);transition:.25s}
-.auto-slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#9fb2c8;transition:.25s}
-.auto-toggle input:checked+.auto-slider{background:linear-gradient(90deg,#1976d2,#20a9a0)}
-.auto-toggle input:checked+.auto-slider:before{transform:translateX(20px);background:white}
-
-@media(max-width:900px){
-  .hero{grid-template-columns:1fr}
-  .grid{grid-template-columns:repeat(2,1fr)}
-}
-@media(max-width:600px){
-  main{width:min(100% - 20px,1180px);padding-top:20px}
-  .topbar{padding:11px 13px}
-  .brand small{display:none}
-  .hero-card{padding:25px;border-radius:25px}
-  .hero h1{font-size:43px}
-  .grid{grid-template-columns:1fr 1fr;gap:10px}
-  .card{padding:16px;border-radius:18px}
-  .value{font-size:31px}
-  .data-row{grid-template-columns:1fr}
-  .music-layout{grid-template-columns:1fr}
-  .music-controls{justify-content:flex-start}
-  .track-select{min-width:0;width:100%}
-  .volume{width:100%}
-  .dev-panel{right:12px;bottom:12px}
-}
-@media(max-width:390px){
-  .grid{grid-template-columns:1fr}
-}
-
-@media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}
-}
-</style>
-</head>
-
-<body>
-<div id="splash">
-  <div class="splash-inner">
-    <div class="splash-orb">🌦️</div>
-    <h1>Team Aqua</h1>
-    <p>Initializing Smart Weather Station...</p>
-    <div class="loader"><span></span></div>
-  </div>
-</div>
-
-<header class="topbar">
-  <a class="brand" href="#">
-    <div class="brand-mark">🌤️</div>
-    <div>
-      <strong>TEAM AQUA</strong>
-      <small>Smart Weather Station</small>
-    </div>
-  </a>
-  <div class="auto-music-bar" title="Automatic music">
-    <span class="auto-label">AUTO MUSIC</span>
-    <label class="auto-toggle">
-      <input id="autoMusicToggle" type="checkbox" checked>
-      <span class="auto-slider"></span>
-    </label>
-  </div>
-  <button class="menu-btn" id="menuButton" aria-label="Open menu">
-    <span class="menu-lines"><span></span><span></span><span></span></span>
-  </button>
-</header>
-
-<div class="drawer-overlay" id="drawerOverlay"></div>
-<aside class="drawer" id="drawer">
-  <div class="drawer-head">
-    <h2>Menu</h2>
-    <button class="close-btn" id="closeDrawer" aria-label="Close menu">×</button>
-  </div>
-  <div class="drawer-nav">
-    <button data-scroll="dashboard">📊 Dashboard</button>
-    <button data-scroll="weather">☁️ Online Weather</button>
-    <button data-scroll="music">🎵 Music</button>
-    <button data-scroll="privacy-policy">🔒 Privacy & Policy</button>
-  </div>
-  <div class="drawer-note">
-    Team Aqua combines ESP32 sensor data with online weather information.
-  </div>
-</aside>
-
-<div class="dev-panel" id="devPanel">
-  <div class="dev-panel-head">
-    <span>Dev Panel</span>
-    <button class="dev-mini-btn" id="devToggle">Hide</button>
-  </div>
-  <div class="dev-panel-body">
-    <div class="dev-btn-grid">
-      <button class="dev-btn" data-action="refresh">Refresh</button>
-      <button class="dev-btn" data-action="music">Music</button>
-      <button class="dev-btn" data-action="status">Status</button>
-      <button class="dev-btn" data-action="reset">Reset</button>
-    </div>
-    <div class="dev-status">
-      <strong>ESP32:</strong> Online<br>
-      <strong>Weather:</strong> Connected<br>
-      <strong>Mode:</strong> Team Aqua Dashboard
-    </div>
-  </div>
-</div>
-
-<main id="dashboard">
-  <section class="hero">
-    <div class="hero-card">
-      <div class="eyebrow">TEAM AQUA • LIVE SYSTEM</div>
-      <h1>Weather data, <span>beautifully connected.</span></h1>
-      <p>
-        A redesigned dashboard for the Smart Weather Station ecosystem.
-        Local temperature and humidity come straight from your ESP32 through Firebase,
-        while wind and pressure come from online weather data.
-      </p>
-      <div class="hero-actions">
-        <button class="primary" id="refreshButton">↻ Refresh weather</button>
-        <button class="secondary" id="heroMusicButton">▶ Start music</button>
-      </div>
-    </div>
-
-    <div class="mini-stack">
-      <div class="mini-panel">
-        <div class="eyebrow">ESP32 LINK</div>
-        <div class="mini-value" id="heroSensor">Waiting</div>
-        <div class="mini-sub">Firebase sensor connection</div>
-      </div>
-      <div class="mini-panel">
-        <div class="eyebrow">LOCATION</div>
-        <div class="mini-value">📍</div>
-        <div class="mini-sub" id="location">Detecting your location...</div>
-      </div>
-    </div>
-  </section>
-
-  <div class="status" id="firebaseStatus">
-    <span class="dot"></span><span id="firebaseStatusText">Connecting to your ESP32...</span>
-  </div>
-
-  <section class="grid">
-    <div class="card">
-      <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>
-      <div class="label">Temperature</div>
-      <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>
-      <div class="info">Local DHT22 sensor</div>
-    </div>
-
-    <div class="card">
-      <div class="card-top"><div class="icon">💧</div><span class="badge">ESP32</span></div>
-      <div class="label">Humidity</div>
-      <div class="value humidity" id="humidity">-- <span class="unit">%</span></div>
-      <div class="info">Local DHT22 sensor</div>
-    </div>
-
-    <div class="card">
-      <div class="card-top"><div class="icon">💨</div><span class="badge">ONLINE</span></div>
-      <div class="label">Wind Speed</div>
-      <div class="value wind" id="wind">-- <span class="unit">km/h</span></div>
-      <div class="info">Online weather data</div>
-    </div>
-
-    <div class="card">
-      <div class="card-top"><div class="icon">🌬️</div><span class="badge">ONLINE</span></div>
-      <div class="label">Air Pressure</div>
-      <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
-      <div class="info">Online weather data</div>
-    </div>
-  </section>
-
-  <section class="section" id="weather">
-    <div class="section-head">
-      <h2>☁️ Current Weather</h2>
-      <span class="pill">AUTO REFRESH • 10 MIN</span>
-    </div>
-    <p class="info" id="condition">Waiting for weather data...</p>
-    <div class="data-row">
-      <div class="data-box"><span class="info">Wind direction</span><strong id="windDirection">--</strong></div>
-      <div class="data-box"><span class="info">Online update</span><strong id="weatherUpdated">--</strong></div>
-      <div class="data-box"><span class="info">Sensor update</span><strong id="sensorUpdated">--</strong></div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-head">
-      <h2>📡 Device Information</h2>
-      <span class="pill" id="devicePill">WAITING</span>
-    </div>
-    <p class="info" id="deviceStatus">Waiting for ESP32...</p>
-  </section>
-
-  <section class="section" id="music">
-    <div class="section-head">
-      <h2>🎵 Aqua Radio</h2>
-      <span class="pill">BASS PULSE • AUTO ONLY</span>
-    </div>
-    <div class="music-layout">
-      <div>
-        <div class="track-title">Bass Pulse</div>
-        <div class="track-meta">The only site soundtrack • Automatic playback</div>
-      </div>
-      <div class="music-controls">
-        <span class="pill" id="musicState">AUTO ON</span>
-        <input class="volume" id="volume" type="range" min="0" max="1" step=".01" value=".35" aria-label="Volume">
-      </div>
-    </div>
-    <p class="info" style="margin-bottom:0">
-      Music is controlled only by the AUTO MUSIC switch at the top.
-    </p>
-    <audio id="bassPulseAudio" preload="auto" loop>
-      <source src="./Bass%20Pulse.mp3" type="audio/mpeg">
-    </audio>
-  </section>
-</main>
-
-<section class="section" id="privacy-policy">
-  <div class="section-head">
-    <h2>🔒 Privacy & Content Policy</h2>
-    <span class="pill">TEAM AQUA</span>
-  </div>
-  <p class="info">
-    Hello, this is Killer Studios / Team Aqua. We created and maintain this Smart Weather Station website as part of our exhibition project.
-  </p>
-  <p class="info">
-    Weather information displayed on this website is obtained from <strong>Open-Meteo</strong>.
-  </p>
-  <p class="info" style="margin-bottom:0">
-    This website is created for educational and exhibition purposes.
-  </p>
-</section>
-
-<footer>
-  <b>Team Aqua • Smart Weather Station</b><br>
-  ESP32 • Firebase • Open-Meteo • Responsive Website
-</footer>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
+// Your Firebase Project Credentials
 const firebaseConfig = {
   apiKey: "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
   authDomain: "esp-32-aws.firebaseapp.com",
@@ -505,6 +19,7 @@ const weatherRef = ref(database, "weatherStation");
 
 const $ = id => document.getElementById(id);
 
+// Drawer Navigation
 const drawer = $("drawer");
 const overlay = $("drawerOverlay");
 const openDrawer = () => { drawer.classList.add("open"); overlay.classList.add("open"); };
@@ -520,6 +35,7 @@ document.querySelectorAll("[data-scroll]").forEach(btn => {
   });
 });
 
+// Dev Panel Toggle
 const devPanel = $("devPanel");
 const devToggle = $("devToggle");
 devToggle.addEventListener("click", () => {
@@ -527,39 +43,15 @@ devToggle.addEventListener("click", () => {
   devToggle.textContent = devPanel.classList.contains("collapsed") ? "Show" : "Hide";
 });
 
-document.querySelectorAll("[data-action]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const action = btn.dataset.action;
-
-    if (action === "refresh") {
-      $("refreshButton").click();
-    }
-
-    if (action === "music") {
-      const auto = $("autoMusicToggle");
-      auto.checked = !auto.checked;
-      auto.dispatchEvent(new Event("change"));
-    }
-
-    if (action === "status") {
-      const status = $("firebaseStatusText").textContent;
-      $("firebaseStatusText").textContent = status.includes("Firebase") ? "Developer status: OK" : "Developer status: ACTIVE";
-    }
-
-    if (action === "reset") {
-      location.reload();
-    }
-  });
-});
-
+// Listen to Live Firebase Database Updates
 onValue(weatherRef, snapshot => {
   const data = snapshot.val();
 
   if (!data) {
-    $("firebaseStatusText").textContent = "Waiting for ESP32 readings...";
+    $("firebaseStatusText").textContent = "Waiting for Firebase data...";
     $("firebaseStatus").classList.remove("ok");
     $("heroSensor").textContent = "Waiting";
-    $("deviceStatus").textContent = "No sensor data received yet.";
+    $("deviceStatus").textContent = "No sensor data found at /weatherStation path.";
     $("devicePill").textContent = "WAITING";
     return;
   }
@@ -575,15 +67,16 @@ onValue(weatherRef, snapshot => {
   $("firebaseStatus").classList.add("ok");
   $("heroSensor").textContent = "Online";
   $("devicePill").textContent = "ONLINE";
-  $("deviceStatus").textContent = "Sensor readings received from the ESP32.";
+  $("deviceStatus").textContent = "Live sensor data synchronized via Firebase Realtime Database.";
   $("sensorUpdated").textContent = new Date().toLocaleTimeString();
 }, error => {
-  $("firebaseStatusText").textContent = "Firebase error";
+  $("firebaseStatusText").textContent = "Firebase connection error";
   $("firebaseStatus").classList.add("bad");
   $("devicePill").textContent = "ERROR";
   $("deviceStatus").textContent = error.message;
 });
 
+// Open-Meteo Weather Integration
 const conditionNames = {
   0:"Clear sky ☀️",1:"Mainly clear 🌤️",2:"Partly cloudy ⛅",3:"Overcast ☁️",
   45:"Fog 🌫️",48:"Depositing rime fog 🌫️",51:"Light drizzle 🌦️",
@@ -602,14 +95,8 @@ function getDirection(degrees){
 let savedLatitude=null, savedLongitude=null, savedLocation="Your location";
 
 async function loadWeather(latitude, longitude, locationName){
-  const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}` +
-    `&longitude=${longitude}` +
-    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl` +
-    `&timezone=auto`;
-
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&timezone=auto`;
   try{
-    $("condition").textContent="Loading online weather...";
     const response=await fetch(url);
     if(!response.ok) throw new Error("Weather service unavailable");
     const result=await response.json();
@@ -623,31 +110,27 @@ async function loadWeather(latitude, longitude, locationName){
     $("location").textContent="📍 "+locationName;
   }catch(error){
     $("condition").textContent="Unable to load online weather.";
-    console.error(error);
   }
 }
 
 function detectLocation(){
-  if(!navigator.geolocation){
-    $("location").textContent="📍 Location is not supported by this browser.";
-    return;
-  }
-
+  if(!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(async position=>{
     savedLatitude=position.coords.latitude;
     savedLongitude=position.coords.longitude;
     savedLocation="Your current location";
     await loadWeather(savedLatitude,savedLongitude,savedLocation);
   },()=>{
-    $("location").textContent="📍 Location unavailable. Allow location access to load local weather.";
+    $("location").textContent="📍 Location unavailable.";
   },{enableHighAccuracy:false,timeout:15000,maximumAge:600000});
 }
 
 $("refreshButton").addEventListener("click",()=>{
-  if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
+  if(savedLatitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
   else detectLocation();
 });
 
+// Audio & Controls
 const bassPulseAudio=$("bassPulseAudio");
 const autoMusicToggle=$("autoMusicToggle");
 const musicState=$("musicState");
@@ -656,49 +139,28 @@ const volumeControl=$("volume");
 bassPulseAudio.volume=Number(volumeControl.value);
 
 function updateMusicState(){
-  const on=autoMusicToggle.checked;
-  musicState.textContent=on ? "AUTO ON" : "AUTO OFF";
+  musicState.textContent=autoMusicToggle.checked ? "AUTO ON" : "AUTO OFF";
 }
 
 async function startBassPulse(){
   if(!autoMusicToggle.checked) return;
-  try{ await bassPulseAudio.play(); }
-  catch(e){}
+  try{ await bassPulseAudio.play(); }catch(e){}
   updateMusicState();
 }
 
 $("heroMusicButton").addEventListener("click", async()=>{
   autoMusicToggle.checked=true;
-  try{
-    await bassPulseAudio.play();
-    $("heroMusicButton").textContent="♫ Music playing";
-  }catch(e){
-    $("heroMusicButton").textContent="▶ Start music";
-  }
+  try{ await bassPulseAudio.play(); $("heroMusicButton").textContent="♫ Music playing"; }catch(e){}
   updateMusicState();
 });
-
-bassPulseAudio.addEventListener("error",()=>{
-  $("musicState").textContent="FILE ERROR";
-  console.error("Bass Pulse.mp3 could not be loaded. Check that the file is beside index.html and named exactly: Bass Pulse.mp3");
-});
-
-function stopBassPulse(){
-  bassPulseAudio.pause();
-  updateMusicState();
-}
 
 autoMusicToggle.addEventListener("change",()=>{
   if(autoMusicToggle.checked) startBassPulse();
-  else stopBassPulse();
+  else { bassPulseAudio.pause(); updateMusicState(); }
 });
+
 volumeControl.addEventListener("input",()=>{
   bassPulseAudio.volume=Number(volumeControl.value);
-});
-["pointerdown","keydown","touchstart"].forEach(evt=>{
-  document.addEventListener(evt,()=>{
-    if(autoMusicToggle.checked && bassPulseAudio.paused) startBassPulse();
-  },{passive:true});
 });
 
 window.addEventListener("load",()=>{
@@ -706,11 +168,4 @@ window.addEventListener("load",()=>{
   updateMusicState();
   setTimeout(()=>$("splash").classList.add("hide"),1800);
 });
-
-setInterval(()=>{
-  if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
-},600000);
 </script>
-
-</body>
-</html>
