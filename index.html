@@ -1,8 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Aqua • Smart Weather Station</title>
+<style>
+:root{
+  --bg:#050b14;
+  --panel:rgba(13,25,43,.75);
+  --line:rgba(148,163,184,.16);
+  --text:#f8fbff;
+  --muted:#8fa4bd;
+  --blue:#55b7ff;
+  --cyan:#43e0d1;
+  --yellow:#ffd166;
+  --purple:#a78bfa;
+  --green:#5ee7a0;
+  --danger:#ff7185;
+  --shadow:0 24px 70px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;color:var(--text);
+  font-family:Inter,system-ui,sans-serif;
+  background:linear-gradient(180deg,#07111f 0%,#050b14 55%,#040810 100%);
+  overflow-x:hidden;
+}
+
+/* Splash Screen */
+#splash{
+  position:fixed;inset:0;background:#050b14;z-index:9999;
+  display:grid;place-items:center;transition:opacity .5s ease,visibility .5s ease;
+}
+#splash.hide{opacity:0;visibility:hidden}
+.splash-content{text-align:center}
+.splash-logo{font-size:48px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* Topbar */
+.topbar{
+  position:sticky;top:0;z-index:900;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;background:rgba(5,11,20,.85);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
+.brand-mark{
+  width:42px;height:42px;border-radius:14px;display:grid;place-items:center;
+  background:linear-gradient(135deg,rgba(85,183,255,.2),rgba(67,224,209,.13));
+  border:1px solid rgba(85,183,255,.24);font-size:22px;
+}
+.menu-btn{
+  background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);
+  padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+}
+
+/* Main Layout */
+main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
+.hero{
+  background:linear-gradient(145deg,rgba(16,31,52,.9),rgba(9,19,33,.85));
+  border:1px solid var(--line);border-radius:28px;padding:36px;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;margin-bottom:24px;
+}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:550px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:linear-gradient(145deg,rgba(16,31,52,.82),rgba(9,19,33,.76));
+  border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:var(--shadow);
+}
+.label{color:#c6d5e5;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-top:10px}
+.value{font-size:36px;font-weight:850;margin:10px 0}
+.unit{font-size:15px;color:var(--muted)}
+.temperature{color:var(--yellow)} .humidity{color:var(--blue)} .wind{color:var(--purple)} .pressure{color:var(--green)}
+
+/* Status Bar */
+.status{
+  display:flex;align-items:center;gap:10px;margin:20px 0;padding:13px 18px;
+  border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.035);
+}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--yellow)}
+.status.ok .dot{background:var(--green)}
+.status.bad .dot{background:var(--danger)}
+
+/* Drawer Navigation */
+.drawer-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  z-index:950;opacity:0;visibility:hidden;transition:.3s;
+}
+.drawer-overlay.open{opacity:1;visibility:visible}
+.drawer{
+  position:fixed;top:0;right:-320px;width:320px;height:100%;
+  background:#091322;border-left:1px solid var(--line);z-index:960;
+  transition:.3s;padding:24px;display:flex;flex-direction:column;gap:20px;
+}
+.drawer.open{right:0}
+.drawer-header{display:flex;justify-content:space-between;align-items:center}
+.close-drawer{background:none;border:0;color:var(--text);font-size:20px;cursor:pointer}
+.drawer-link{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:12px;text-align:left;cursor:pointer;font-weight:600}
+
+/* Dev Panel */
+.dev-panel{background:rgba(13,25,43,.5);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:24px}
+.dev-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.dev-body{margin-top:15px;display:block}
+.dev-panel.collapsed .dev-body{display:none}
+button.action-btn{background:linear-gradient(135deg,#1976d2,#20a9a0);border:0;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- Splash Screen -->
+<div id="splash">
+  <div class="splash-content">
+    <div class="splash-logo">🌊</div>
+    <h2 style="color:var(--cyan);margin-top:10px;">TEAM AQUA</h2>
+    <p style="color:var(--muted);font-size:13px;">Initializing Smart Weather Station...</p>
+  </div>
+</div>
+
+<!-- Topbar -->
+<header class="topbar">
+  <a class="brand" href="#">
+    <div class="brand-mark">🌤️</div>
+    <div><strong>TEAM AQUA</strong><small style="color:var(--muted);display:block;">Smart Weather Station</small></div>
+  </a>
+  <button class="menu-btn" id="menuButton">Menu ☰</button>
+</header>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h3>Navigation</h3>
+    <button class="close-drawer" id="closeDrawer">&times;</button>
+  </div>
+  <button class="drawer-link" data-scroll="dashboardSection">📊 Live Dashboard</button>
+  <button class="drawer-link" data-scroll="weatherSection">☁️ Regional Weather</button>
+  <button class="drawer-link" data-scroll="devSection">🛠️ Developer Diagnostics</button>
+</div>
+
+<main>
+  <!-- Firebase Status Banner -->
+  <div class="status" id="firebaseStatus">
+    <span class="dot" id="firebaseDot"></span>
+    <span id="firebaseStatusText">Connecting to Firebase Realtime Database...</span>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero" id="dashboardSection">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;">
+      <div>
+        <span style="background:rgba(67,224,209,.1);color:var(--cyan);padding:5px 12px;border-radius:99px;font-size:11px;border:1px solid rgba(67,224,209,0.2);">LIVE ESP32 FEED</span>
+        <h1 style="margin:10px 0 5px;font-size:28px;">Team Aqua Command Center</h1>
+        <p style="color:var(--muted);margin:0;font-size:13px;" id="deviceStatus">Waiting for hardware telemetry...</p>
+      </div>
+      <button class="action-btn" id="heroMusicButton">♫ Toggle Audio</button>
+    </div>
+
+    <!-- Live Sensor Cards -->
+    <div class="grid">
+      <div class="card">
+        <div class="label">Temperature</div>
+        <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>
+        <div style="color:var(--muted);font-size:12px;">DHT22 Sensor (GPIO 4)</div>
+      </div>
+      <div class="card">
+        <div class="label">Humidity</div>
+        <div class="value humidity" id="humidity">-- <span class="unit">%</span></div>
+        <div style="color:var(--muted);font-size:12px;">Relative Moisture</div>
+      </div>
+      <div class="card" id="weatherSection">
+        <div class="label">Wind Speed</div>
+        <div class="value wind" id="wind">-- <span class="unit">km/h</span></div>
+        <div style="color:var(--muted);font-size:12px;" id="windDirection">Direction: --</div>
+      </div>
+      <div class="card">
+        <div class="label">Air Pressure</div>
+        <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
+        <div style="color:var(--muted);font-size:12px;" id="location">📍 Loading location...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer Diagnostics Panel -->
+  <section class="dev-panel" id="devSection">
+    <div class="dev-header" id="devToggle">
+      <h3 style="margin:0;font-size:16px;color:var(--cyan);">🛠️ Developer Diagnostics & Controls</h3>
+      <span style="font-size:13px;color:var(--muted);">Hide</span>
+    </div>
+    <div class="dev-body">
+      <p style="color:var(--muted);font-size:13px;margin-top:0;">System health, audio controls, and data sync metrics.</p>
+      <div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-top:15px;">
+        <button class="action-btn" id="refreshButton">Force Refresh Data</button>
+        <label style="font-size:13px;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="autoMusicToggle"> Ambient Audio FX
+        </label>
+        <span style="font-size:13px;color:var(--muted);">Status: <strong id="musicState" style="color:var(--text);">OFF</strong></span>
+      </div>
+      <div style="margin-top:15px;font-size:12px;color:var(--muted);">
+        Last Sensor Update: <span id="sensorUpdated">Never</span> | Weather Updated: <span id="weatherUpdated">Never</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Hidden Audio Element -->
+<audio id="bassPulseAudio" loop src="https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg"></audio>
+
+<!-- Scripts -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
-// Your Firebase Project Credentials
 const firebaseConfig = {
   apiKey: "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
   authDomain: "esp-32-aws.firebaseapp.com",
@@ -36,23 +246,18 @@ document.querySelectorAll("[data-scroll]").forEach(btn => {
 });
 
 // Dev Panel Toggle
-const devPanel = $("devPanel");
+const devPanel = $("devSection");
 const devToggle = $("devToggle");
 devToggle.addEventListener("click", () => {
   devPanel.classList.toggle("collapsed");
-  devToggle.textContent = devPanel.classList.contains("collapsed") ? "Show" : "Hide";
 });
 
 // Listen to Live Firebase Database Updates
 onValue(weatherRef, snapshot => {
   const data = snapshot.val();
-
   if (!data) {
-    $("firebaseStatusText").textContent = "Waiting for Firebase data...";
-    $("firebaseStatus").classList.remove("ok");
-    $("heroSensor").textContent = "Waiting";
-    $("deviceStatus").textContent = "No sensor data found at /weatherStation path.";
-    $("devicePill").textContent = "WAITING";
+    $("firebaseStatusText").textContent = "Connected to Firebase, waiting for sensor data at /weatherStation...";
+    $("firebaseStatus").className = "status";
     return;
   }
 
@@ -63,109 +268,85 @@ onValue(weatherRef, snapshot => {
     $("humidity").innerHTML = `${data.humidity.toFixed(0)} <span class="unit">%</span>`;
   }
 
-  $("firebaseStatusText").textContent = "Firebase connected";
-  $("firebaseStatus").classList.add("ok");
-  $("heroSensor").textContent = "Online";
-  $("devicePill").textContent = "ONLINE";
-  $("deviceStatus").textContent = "Live sensor data synchronized via Firebase Realtime Database.";
+  $("firebaseStatusText").textContent = "Firebase connected • Live hardware stream active";
+  $("firebaseStatus").className = "status ok";
+  $("deviceStatus").textContent = "Live telemetry streaming successfully from ESP32.";
   $("sensorUpdated").textContent = new Date().toLocaleTimeString();
 }, error => {
-  $("firebaseStatusText").textContent = "Firebase connection error";
-  $("firebaseStatus").classList.add("bad");
-  $("devicePill").textContent = "ERROR";
-  $("deviceStatus").textContent = error.message;
+  $("firebaseStatusText").textContent = "Firebase error: " + error.message;
+  $("firebaseStatus").className = "status bad";
 });
 
 // Open-Meteo Weather Integration
-const conditionNames = {
-  0:"Clear sky ☀️",1:"Mainly clear 🌤️",2:"Partly cloudy ⛅",3:"Overcast ☁️",
-  45:"Fog 🌫️",48:"Depositing rime fog 🌫️",51:"Light drizzle 🌦️",
-  53:"Moderate drizzle 🌦️",55:"Dense drizzle 🌧️",61:"Slight rain 🌧️",
-  63:"Moderate rain 🌧️",65:"Heavy rain 🌧️",71:"Slight snowfall ❄️",
-  73:"Moderate snowfall ❄️",75:"Heavy snowfall ❄️",80:"Rain showers 🌧️",
-  81:"Moderate rain showers 🌧️",82:"Violent rain showers 🌧️",
-  95:"Thunderstorm ⛈️",96:"Thunderstorm with hail ⛈️",99:"Thunderstorm with heavy hail ⛈️"
-};
-
 function getDirection(degrees){
   const directions=["N","NE","E","SE","S","SW","W","NW"];
   return directions[Math.round(degrees/45)%8];
 }
 
-let savedLatitude=null, savedLongitude=null, savedLocation="Your location";
-
-async function loadWeather(latitude, longitude, locationName){
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl&timezone=auto`;
-  try{
-    const response=await fetch(url);
-    if(!response.ok) throw new Error("Weather service unavailable");
-    const result=await response.json();
-    const current=result.current;
-
-    $("wind").innerHTML=`${Number(current.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
-    $("pressure").innerHTML=`${Number(current.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
-    $("condition").textContent=conditionNames[current.weather_code] ?? "Weather condition unavailable";
-    $("windDirection").textContent=getDirection(current.wind_direction_10m);
-    $("weatherUpdated").textContent=new Date().toLocaleTimeString();
-    $("location").textContent="📍 "+locationName;
-  }catch(error){
-    $("condition").textContent="Unable to load online weather.";
+async function loadWeather(lat, lon, name){
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m,pressure_msl&timezone=auto`);
+    const data = await res.json();
+    const cur = data.current;
+    $("wind").innerHTML = `${Number(cur.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
+    $("pressure").innerHTML = `${Number(cur.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
+    $("windDirection").textContent = `Direction: ${getDirection(cur.wind_direction_10m)}`;
+    $("location").textContent = `📍 ${name}`;
+    $("weatherUpdated").textContent = new Date().toLocaleTimeString();
+  } catch(e) {
+    $("location").textContent = "📍 Weather unavailable";
   }
 }
 
 function detectLocation(){
-  if(!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(async position=>{
-    savedLatitude=position.coords.latitude;
-    savedLongitude=position.coords.longitude;
-    savedLocation="Your current location";
-    await loadWeather(savedLatitude,savedLongitude,savedLocation);
-  },()=>{
-    $("location").textContent="📍 Location unavailable.";
-  },{enableHighAccuracy:false,timeout:15000,maximumAge:600000});
+  if(!navigator.geolocation) {
+    loadWeather(19.076, 72.8777, "Default Location");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    loadWeather(pos.coords.latitude, pos.coords.longitude, "Your Location");
+  }, () => {
+    loadWeather(19.076, 72.8777, "Mumbai (Default)");
+  });
 }
 
-$("refreshButton").addEventListener("click",()=>{
-  if(savedLatitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
-  else detectLocation();
-});
-
-// Audio & Controls
-const bassPulseAudio=$("bassPulseAudio");
-const autoMusicToggle=$("autoMusicToggle");
-const musicState=$("musicState");
-const volumeControl=$("volume");
-
-bassPulseAudio.volume=Number(volumeControl.value);
+// Audio Controls
+const audio = $("bassPulseAudio");
+const musicToggle = $("autoMusicToggle");
+const musicState = $("musicState");
 
 function updateMusicState(){
-  musicState.textContent=autoMusicToggle.checked ? "AUTO ON" : "AUTO OFF";
+  musicState.textContent = musicToggle.checked ? "ON" : "OFF";
 }
 
-async function startBassPulse(){
-  if(!autoMusicToggle.checked) return;
-  try{ await bassPulseAudio.play(); }catch(e){}
-  updateMusicState();
-}
-
-$("heroMusicButton").addEventListener("click", async()=>{
-  autoMusicToggle.checked=true;
-  try{ await bassPulseAudio.play(); $("heroMusicButton").textContent="♫ Music playing"; }catch(e){}
+$("heroMusicButton").addEventListener("click", async () => {
+  musicToggle.checked = !musicToggle.checked;
+  if(musicToggle.checked) {
+    try { await audio.play(); } catch(e){}
+  } else {
+    audio.pause();
+  }
   updateMusicState();
 });
 
-autoMusicToggle.addEventListener("change",()=>{
-  if(autoMusicToggle.checked) startBassPulse();
-  else { bassPulseAudio.pause(); updateMusicState(); }
+musicToggle.addEventListener("change", async () => {
+  if(musicToggle.checked) {
+    try { await audio.play(); } catch(e){}
+  } else {
+    audio.pause();
+  }
+  updateMusicState();
 });
 
-volumeControl.addEventListener("input",()=>{
-  bassPulseAudio.volume=Number(volumeControl.value);
-});
-
-window.addEventListener("load",()=>{
+$("refreshButton").addEventListener("click", () => {
   detectLocation();
-  updateMusicState();
-  setTimeout(()=>$("splash").classList.add("hide"),1800);
+});
+
+window.addEventListener("load", () => {
+  detectLocation();
+  setTimeout(() => $("splash").classList.add("hide"), 1500);
 });
 </script>
+
+</body>
+</html>
