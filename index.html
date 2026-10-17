@@ -490,7 +490,7 @@ footer b{color:#8fa4bd}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
@@ -504,7 +504,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-// Updated to match your exact Firebase node: WeatherStation (capital W)
 const weatherRef = ref(database, "WeatherStation");
 
 const $ = id => document.getElementById(id);
@@ -556,41 +555,44 @@ document.querySelectorAll("[data-action]").forEach(btn => {
   });
 });
 
-onValue(weatherRef, snapshot => {
-  const data = snapshot.val();
+// Function to fetch data from Firebase every 30 seconds
+async function fetchSensorData() {
+  try {
+    const snapshot = await get(weatherRef);
+    const data = snapshot.val();
 
-  if (!data) {
-    $("firebaseStatusText").textContent = "Waiting for ESP32 readings...";
-    $("firebaseStatus").classList.remove("ok");
-    $("heroSensor").textContent = "Waiting";
-    $("deviceStatus").textContent = "No sensor data received yet.";
-    $("devicePill").textContent = "WAITING";
-    return;
+    if (!data) {
+      $("firebaseStatusText").textContent = "Waiting for ESP32 readings...";
+      $("firebaseStatus").classList.remove("ok");
+      $("heroSensor").textContent = "Waiting";
+      $("deviceStatus").textContent = "No sensor data received yet.";
+      $("devicePill").textContent = "WAITING";
+      return;
+    }
+
+    const temp = data.Temperature !== undefined ? data.Temperature : data.temperature;
+    const hum = data.Humidity !== undefined ? data.Humidity : data.humidity;
+
+    if (typeof temp === "number") {
+      $("temperature").innerHTML = `${temp.toFixed(1)} <span class="unit">°C</span>`;
+    }
+    if (typeof hum === "number") {
+      $("humidity").innerHTML = `${hum.toFixed(0)} <span class="unit">%</span>`;
+    }
+
+    $("firebaseStatusText").textContent = "Weather data connected (30s sync)";
+    $("firebaseStatus").classList.add("ok");
+    $("heroSensor").textContent = "Online";
+    $("devicePill").textContent = "ONLINE";
+    $("deviceStatus").textContent = "Sensor readings refreshed from ESP32.";
+    $("sensorUpdated").textContent = new Date().toLocaleTimeString();
+  } catch (error) {
+    $("firebaseStatusText").textContent = "Firebase error: " + error.message;
+    $("firebaseStatus").classList.add("bad");
+    $("devicePill").textContent = "ERROR";
+    $("deviceStatus").textContent = error.message;
   }
-
-  // Handle capitalized keys sent by ESP32 (Temperature, Humidity)
-  const temp = data.Temperature !== undefined ? data.Temperature : data.temperature;
-  const hum = data.Humidity !== undefined ? data.Humidity : data.humidity;
-
-  if (typeof temp === "number") {
-    $("temperature").innerHTML = `${temp.toFixed(1)} <span class="unit">°C</span>`;
-  }
-  if (typeof hum === "number") {
-    $("humidity").innerHTML = `${hum.toFixed(0)} <span class="unit">%</span>`;
-  }
-
-  $("firebaseStatusText").textContent = "Weather data connected beautifully";
-  $("firebaseStatus").classList.add("ok");
-  $("heroSensor").textContent = "Online";
-  $("devicePill").textContent = "ONLINE";
-  $("deviceStatus").textContent = "Sensor readings received from the ESP32.";
-  $("sensorUpdated").textContent = new Date().toLocaleTimeString();
-}, error => {
-  $("firebaseStatusText").textContent = "Firebase error: " + error.message;
-  $("firebaseStatus").classList.add("bad");
-  $("devicePill").textContent = "ERROR";
-  $("deviceStatus").textContent = error.message;
-});
+}
 
 const conditionNames = {
   0:"Clear sky ☀️",1:"Mainly clear 🌤️",2:"Partly cloudy ⛅",3:"Overcast ☁️",
@@ -712,8 +714,13 @@ volumeControl.addEventListener("input",()=>{
 window.addEventListener("load",()=>{
   detectLocation();
   updateMusicState();
+  // Initial fetch for sensor data
+  fetchSensorData();
   setTimeout(()=>$("splash").classList.add("hide"),1800);
 });
+
+// Refresh sensor data every 30 seconds (30000 ms)
+setInterval(fetchSensorData, 30000);
 
 setInterval(()=>{
   if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
