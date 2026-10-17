@@ -714,6 +714,38 @@ setInterval(()=>{
   if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
 },600000);
 </script>
+<script>
+    const firebaseURL = "https://esp-32-aws-default-rtdb.asia-southeast1.firebasedatabase.app/WeatherStation.json";
 
+    async function syncWeatherStation() {
+        try {
+            let response = await fetch(firebaseURL);
+            let data = await response.json();
+
+            if (data) {
+                // Extract temperature and humidity from your ESP32 payload
+                let temp = data.Temperature !== undefined ? data.Temperature + " °C" : "--";
+                let hum = data.Humidity !== undefined ? data.Humidity + " %" : "--";
+
+                // Update your dashboard elements (replace selectors with your exact HTML element IDs/classes)
+                // For example, updating the ESP32 Link status card:
+                document.querySelector(".card h3, .esp32-status").innerText = "Online"; // Or update your specific DOM elements
+                
+                console.log("Synced Data - Temp:", temp, "Humidity:", hum);
+                
+                // If you have specific element IDs for temp and humidity, update them like this:
+                // document.getElementById("temperature-display").innerText = temp;
+                // document.getElementById("humidity-display").innerText = hum;
+            }
+        } catch (error) {
+            console.error("Error connecting to Firebase:", error);
+            // Keep status as Waiting if fetch fails
+        }
+    }
+
+    // Run immediately, then poll every 5 seconds to match your ESP32 upload rate
+    syncWeatherStation();
+    setInterval(syncWeatherStation, 5000);
+</script>
 </body>
 </html>
