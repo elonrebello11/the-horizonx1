@@ -98,6 +98,14 @@ body::before{
   animation: logoSpinPulse 10s linear infinite;
 }
 
+.top-clock{
+  color:var(--muted);
+  font-weight:700;
+  min-width:96px;
+  text-align:right;
+  font-size:13px;
+}
+
 .topbar{
   position:sticky;top:0;z-index:900;
   display:flex;align-items:center;justify-content:space-between;
@@ -309,8 +317,8 @@ footer b{color:#8fa4bd}
 
 <header class="topbar">
   <a class="brand" href="#">
-    <!-- Rotating & Pulsing Team Aqua Logo -->
-    <img src="FullLogo.jpg" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">
+    <!-- Rotating & Pulsing Team Aqua Logo (updated to repo screenshot image) -->
+    <img src="Screenshot 2026-09-29 221732.png" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">
     <div>
       <strong>TEAM AQUA</strong>
       <small>Smart Weather Station</small>
@@ -323,6 +331,8 @@ footer b{color:#8fa4bd}
       <span class="auto-slider"></span>
     </label>
   </div>
+  <!-- Topbar clock -->
+  <div class="top-clock" id="topClock" aria-live="polite">--:--:--</div>
   <button class="menu-btn" id="menuButton" aria-label="Open menu">
     <span class="menu-lines"><span></span><span></span><span></span></span>
   </button>
@@ -426,6 +436,19 @@ footer b{color:#8fa4bd}
       <div class="label">Air Pressure</div>
       <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
       <div class="info">Online weather data</div>
+    </div>
+  </section>
+
+  <!-- New: Feels Like (Online) section using Open-Meteo apparent_temperature -->
+  <section class="section">
+    <div class="section-head">
+      <h2>🌡️ Feels Like (Online)</h2>
+      <span class="pill">Open‑Meteo apparent temperature</span>
+    </div>
+    <div class="card" style="max-width:360px;margin-top:8px;">
+      <div class="label">Apparent temperature</div>
+      <div class="value temperature" id="feelsOnline">-- <span class="unit">°C</span></div>
+      <div class="info">Based on Open‑Meteo's apparent_temperature</div>
     </div>
   </section>
 
@@ -684,6 +707,37 @@ async function loadWeather(latitude, longitude, locationName){
     $("windDirection").textContent=getDirection(current.wind_direction_10m);
     $("weatherUpdated").textContent=new Date().toLocaleTimeString();
     $("location").textContent="📍 "+locationName;
+
+    // New: populate the online 'feels like' using apparent_temperature when available
+    if (current && (current.apparent_temperature !== undefined && current.apparent_temperature !== null)) {
+      $("feelsOnline").innerHTML = `${Number(current.apparent_temperature).toFixed(1)} <span class="unit">°C</span>`;
+    } else if (result.hourly && result.hourly.apparent_temperature) {
+      // fallback to hourly nearest hour
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth()+1).padStart(2,'0');
+      const dd = String(now.getDate()).padStart(2,'0');
+      const hh = String(now.getHours()).padStart(2,'0');
+      const key = `${yyyy}-${mm}-${dd}T${hh}:00`;
+      const times = result.hourly.time || [];
+      const temps = result.hourly.apparent_temperature || [];
+      let idx = times.indexOf(key);
+      if (idx === -1) {
+        // nearest
+        let best = 0; let bestDiff = Infinity;
+        for (let i=0;i<times.length;i++){
+          const t = new Date(times[i]);
+          const diff = Math.abs(t - now);
+          if (diff < bestDiff){ bestDiff = diff; best = i; }
+        }
+        idx = best;
+      }
+      const val = temps[idx];
+      if (val !== undefined && val !== null) {
+        $("feelsOnline").innerHTML = `${Number(val).toFixed(1)} <span class="unit">°C</span>`;
+      }
+    }
+
   }catch(error){
     $("condition").textContent="Unable to load online weather.";
     console.error(error);
@@ -763,6 +817,18 @@ volumeControl.addEventListener("input",()=>{
     if(autoMusicToggle.checked && bassPulseAudio.paused) startBassPulse();
   },{passive:true});
 });
+
+// ---------- Topbar Clock (updates every second) ----------
+function pad(n){ return n<10 ? '0'+n : n; }
+function updateTopClock(){
+  const now = new Date();
+  const hh = pad(now.getHours());
+  const mm = pad(now.getMinutes());
+  const ss = pad(now.getSeconds());
+  $("topClock").textContent = `${hh}:${mm}:${ss}`;
+}
+updateTopClock();
+setInterval(updateTopClock, 1000);
 
 window.addEventListener("load",()=>{
   detectLocation();
