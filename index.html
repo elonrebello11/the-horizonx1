@@ -123,6 +123,9 @@ body::before{
   font-size:13px;
 }
 
+.clock-toggle{display:flex;align-items:center;gap:8px;margin-left:12px}
+.clock-toggle input{width:14px;height:14px}
+
 .topbar{
   position:sticky;top:0;z-index:900;
   display:flex;align-items:center;justify-content:space-between;
@@ -271,6 +274,10 @@ main{width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}
 .data-box{padding:15px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.025)}
 .data-box strong{display:block;margin-top:4px}
 
+.zip-fallback{display:flex;gap:8px;align-items:center;margin-top:8px}
+.zip-fallback input{padding:8px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--text);min-width:140px}
+.zip-fallback button{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text)}
+
 .music-layout{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
 .track-title{font-size:18px;font-weight:750}
 .track-meta{color:var(--muted);font-size:13px;margin-top:5px}
@@ -341,15 +348,25 @@ footer b{color:#8fa4bd}
       <small>Smart Weather Station</small>
     </div>
   </a>
-  <div class="auto-music-bar" title="Automatic music">
-    <span class="auto-label">AUTO MUSIC</span>
-    <label class="auto-toggle">
-      <input id="autoMusicToggle" type="checkbox" checked>
-      <span class="auto-slider"></span>
-    </label>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="auto-music-bar" title="Automatic music">
+      <span class="auto-label">AUTO MUSIC</span>
+      <label class="auto-toggle">
+        <input id="autoMusicToggle" type="checkbox" checked>
+        <span class="auto-slider"></span>
+      </label>
+    </div>
+
+    <!-- Clock & format toggle -->
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="top-clock" id="topClock" aria-live="polite">--:--:--</div>
+      <div class="clock-toggle" title="Toggle 24/12 hour format">
+        <label for="clockFormat24" style="font-size:12px;color:var(--muted)">24h</label>
+        <input id="clockFormat24" type="checkbox" aria-label="24 hour clock">
+      </div>
+    </div>
   </div>
-  <!-- Topbar clock -->
-  <div class="top-clock" id="topClock" aria-live="polite">--:--:--</div>
+
   <button class="menu-btn" id="menuButton" aria-label="Open menu">
     <span class="menu-lines"><span></span><span></span><span></span></span>
   </button>
@@ -430,11 +447,19 @@ footer b{color:#8fa4bd}
   </div>
 
   <section class="grid">
+    <!-- Feels Like separate card (local sensor based) -->
+    <div class="card">
+      <div class="card-top"><div class="icon">🌡️</div><span class="badge">FEELS</span></div>
+      <div class="label">Feels like (sensor)</div>
+      <div class="value temperature" id="feelsLocal">-- <span class="unit">°C</span></div>
+      <div class="info" id="feelsLikeText">Feels like: --</div>
+    </div>
+
     <div class="card">
       <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>
       <div class="label">Temperature</div>
       <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>
-      <div class="info" id="feelsLikeText">Feels like: --</div>
+      <div class="info">From ESP32 sensor</div>
     </div>
 
     <div class="card">
@@ -451,12 +476,6 @@ footer b{color:#8fa4bd}
       <div class="info">Online weather data</div>
     </div>
 
-    <div class="card">
-      <div class="card-top"><div class="icon">🌬️</div><span class="badge">ONLINE</span></div>
-      <div class="label">Air Pressure</div>
-      <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
-      <div class="info">Online weather data</div>
-    </div>
   </section>
 
   <!-- New: Feels Like (Online) section using Open-Meteo apparent_temperature -->
@@ -466,9 +485,17 @@ footer b{color:#8fa4bd}
       <span class="pill">Open‑Meteo apparent temperature</span>
     </div>
     <div class="card" style="max-width:360px;margin-top:8px;">
-      <div class="label">Apparent temperature</div>
+      <div class="label">Apparent temperature (online)</div>
       <div class="value temperature" id="feelsOnline">-- <span class="unit">°C</span></div>
       <div class="info">Based on Open‑Meteo's apparent_temperature</div>
+
+      <!-- ZIP fallback when geolocation is denied -->
+      <div class="zip-fallback" id="zipFallback" style="display:none">
+        <input id="zipInput" placeholder="Enter ZIP / postal code (e.g. 401304)">
+        <button id="zipSubmit">Use ZIP</button>
+        <button id="coordsBtn" title="Enter lat,lon instead">coords</button>
+      </div>
+      <div id="zipMessage" class="info" style="margin-top:8px;display:none"></div>
     </div>
   </section>
 
@@ -604,9 +631,10 @@ document.querySelectorAll("[data-action]").forEach(btn => {
     }
 
     if (action === "offline") {
-      $("temperature").innerHTML = `-- <span class=\"unit\">°C</span>`;
-      $("humidity").innerHTML = `-- <span class=\"unit\">%</span>`;
+      $("temperature").innerHTML = `-- <span class="unit">°C</span>`;
+      $("humidity").innerHTML = `-- <span class="unit">%</span>`;
       $("feelsLikeText").textContent = "Feels like: --";
+      $("feelsLocal").innerHTML = `-- <span class="unit">°C</span>`;
       $("comfortIndex").textContent = "--";
       $("firebaseStatusText").textContent = "ESP32 sensor is offline (Manual override)";
       $("firebaseStatus").classList.remove("ok");
@@ -625,6 +653,51 @@ document.querySelectorAll("[data-action]").forEach(btn => {
 // Track last successful sensor fetch time (ms since epoch)
 let lastSensorTimestamp = null;
 
+// Clock format state: true = 24h, false = 12h
+let use24Hour = localStorage.getItem('clock24') === 'true';
+const clockToggle = $("clockFormat24");
+if (clockToggle) clockToggle.checked = use24Hour;
+clockToggle && clockToggle.addEventListener('change', ()=>{
+  use24Hour = clockToggle.checked;
+  localStorage.setItem('clock24', String(use24Hour));
+  // Update displays immediately
+  updateTopClock();
+  refreshSensorUpdatedDisplay();
+});
+
+function pad(n){ return n<10 ? '0'+n : n; }
+function formatTimeOnly(date){
+  // use toLocaleTimeString with hour12 option to respect user preference
+  try{
+    return date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12: !use24Hour});
+  }catch(e){
+    const hh = date.getHours(); const mm = pad(date.getMinutes()); const ss = pad(date.getSeconds());
+    if (use24Hour) return `${pad(hh)}:${mm}:${ss}`;
+    // 12h fallback
+    const h12 = ((hh + 11) % 12) + 1; const am = hh>=12 ? 'PM' : 'AM';
+    return `${h12}:${mm}:${ss} ${am}`;
+  }
+}
+function formatDateTime(date){
+  try{
+    return date.toLocaleString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12: !use24Hour, year:'numeric',month:'short',day:'numeric'});
+  }catch(e){
+    return `${date.toLocaleDateString()} ${formatTimeOnly(date)}`;
+  }
+}
+
+function updateTopClock(){
+  const now = new Date();
+  $("topClock").textContent = formatTimeOnly(now);
+}
+updateTopClock();
+setInterval(updateTopClock, 1000);
+
+function refreshSensorUpdatedDisplay(){
+  if (!lastSensorTimestamp) return;
+  $("sensorUpdated").textContent = formatDateTime(new Date(lastSensorTimestamp));
+}
+
 // Calculates "Feels Like" and Thermal Comfort Index dynamically (based on local sensor values)
 function updateFeelsLikeAndComfort(temp, hum) {
   let feels = temp;
@@ -642,6 +715,7 @@ function updateFeelsLikeAndComfort(temp, hum) {
   else label = "Freezing 🧊";
 
   $("feelsLikeText").textContent = `Feels like: ${feels.toFixed(1)}°C (${label})`;
+  $("feelsLocal").innerHTML = `${feels.toFixed(1)} <span class="unit">°C</span>`;
 
   let comfort = "Optimal 🟢";
   if (hum > 70) comfort = "Sticky / Humid 💧";
@@ -672,10 +746,10 @@ async function fetchSensorData() {
 
     // Update displayed readings only when real numeric values exist
     if (typeof temp === "number") {
-      $("temperature").innerHTML = `${temp.toFixed(1)} <span class=\"unit\">°C</span>`;
+      $("temperature").innerHTML = `${temp.toFixed(1)} <span class="unit">°C</span>`;
     }
     if (typeof hum === "number") {
-      $("humidity").innerHTML = `${hum.toFixed(0)} <span class=\"unit\">%</span>`;
+      $("humidity").innerHTML = `${hum.toFixed(0)} <span class="unit">%</span>`;
     }
 
     if (typeof temp === "number" && typeof hum === "number") {
@@ -683,7 +757,6 @@ async function fetchSensorData() {
     }
 
     // Populate device information only from real fields present in data
-    // Check common keys without inventing anything
     const deviceInfoKeys = ['device','Device','deviceInfo','DeviceInfo','device_name','deviceName'];
     let foundDeviceInfo = null;
     for (const k of deviceInfoKeys) {
@@ -691,7 +764,6 @@ async function fetchSensorData() {
     }
 
     if (foundDeviceInfo) {
-      // If device info is an object with known properties, display them
       const d = foundDeviceInfo.value;
       $("devicePill").textContent = foundDeviceInfo.key.toUpperCase();
       if (typeof d === 'object') {
@@ -704,12 +776,10 @@ async function fetchSensorData() {
         $("deviceDetails").textContent = parts.join(' • ');
         $("deviceStatus").textContent = d.status ? d.status : 'Device information available';
       } else {
-        // If it's a string, just show it
         $("deviceDetails").textContent = String(d);
         $("deviceStatus").textContent = 'Device information available';
       }
     } else {
-      // No device info provided by Firebase — be explicit and do not fabricate
       $("devicePill").textContent = 'NO DEVICE INFO';
       $("deviceStatus").textContent = 'No device information available from sensor data.';
       $("deviceDetails").textContent = '';
@@ -717,7 +787,7 @@ async function fetchSensorData() {
 
     // Set last sensor timestamp to now (this represents the last successful fetch)
     lastSensorTimestamp = Date.now();
-    $("sensorUpdated").textContent = new Date(lastSensorTimestamp).toLocaleString();
+    refreshSensorUpdatedDisplay();
 
     $("firebaseStatusText").textContent = "Weather data connected (30s sync)";
     $("firebaseStatus").classList.add("ok");
@@ -808,9 +878,16 @@ async function loadWeather(latitude, longitude, locationName){
   }
 }
 
+function showZipFallback(){
+  $("zipFallback").style.display = 'flex';
+  $("zipMessage").style.display = 'block';
+  $("zipMessage").textContent = 'Location permission denied. Enter a ZIP/postal code (e.g. 401304) or click coords to enter lat,lon.';
+}
+
 function detectLocation(){
   if(!navigator.geolocation){
     $("location").textContent="📍 Location is not supported by this browser.";
+    showZipFallback();
     return;
   }
 
@@ -819,10 +896,58 @@ function detectLocation(){
     savedLongitude=position.coords.longitude;
     savedLocation="Your current location";
     await loadWeather(savedLatitude,savedLongitude,savedLocation);
-  },()=>{
+  },(err)=>{
+    // permission denied or other error -> show ZIP fallback
     $("location").textContent="📍 Location unavailable. Allow location access to load local weather.";
+    showZipFallback();
+    console.warn('Geolocation error:', err);
   },{enableHighAccuracy:false,timeout:15000,maximumAge:600000});
 }
+
+// ZIP submit handler: use Open-Meteo geocoding API to resolve postal code/city to lat/lon
+async function submitZip(zip){
+  if (!zip) return;
+  $("zipMessage").textContent = 'Looking up location...';
+  try{
+    const q = encodeURIComponent(zip);
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('Geocoding failed');
+    const j = await r.json();
+    if (j && j.results && j.results.length>0) {
+      const r0 = j.results[0];
+      savedLatitude = r0.latitude;
+      savedLongitude = r0.longitude;
+      savedLocation = r0.name + (r0.country ? ', '+r0.country : '');
+      $("zipMessage").textContent = `Using approximate location: ${savedLocation}`;
+      await loadWeather(savedLatitude, savedLongitude, savedLocation);
+    } else {
+      $("zipMessage").textContent = 'Could not find a matching location for that code.';
+    }
+  }catch(e){
+    $("zipMessage").textContent = 'Lookup error: ' + e.message;
+    console.error(e);
+  }
+}
+
+// coords button -> prompt for lat,lon
+function promptCoords(){
+  const input = prompt('Enter coordinates as lat,lon (example: 19.15,72.98)');
+  if (!input) return;
+  const parts = input.split(',').map(s=>s.trim());
+  if (parts.length!==2) { alert('Invalid format'); return; }
+  const lat = Number(parts[0]); const lon = Number(parts[1]);
+  if (Number.isFinite(lat) && Number.isFinite(lon)){
+    savedLatitude = lat; savedLongitude = lon; savedLocation = `Coords: ${lat},${lon}`;
+    loadWeather(savedLatitude, savedLongitude, savedLocation);
+    $("zipMessage").textContent = 'Using manual coordinates';
+  } else {
+    alert('Invalid numbers');
+  }
+}
+
+$("zipSubmit").addEventListener('click', ()=> submitZip($("zipInput").value.trim()));
+$("coordsBtn").addEventListener('click', promptCoords);
 
 $("refreshButton").addEventListener("click",()=>{
   if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
@@ -882,24 +1007,12 @@ volumeControl.addEventListener("input",()=>{
   },{passive:true});
 });
 
-// ---------- Topbar Clock (updates every second) ----------
-function pad(n){ return n<10 ? '0'+n : n; }
-function updateTopClock(){
-  const now = new Date();
-  const hh = pad(now.getHours());
-  const mm = pad(now.getMinutes());
-  const ss = pad(now.getSeconds());
-  $("topClock").textContent = `${hh}:${mm}:${ss}`;
-}
-updateTopClock();
-setInterval(updateTopClock, 1000);
-
 // ---------- Staleness check: clear displayed sensor data if no new data in 1 minute ----------
 function clearSensorDisplay() {
-  // Clear only the displayed values, do not fabricate
   $("temperature").innerHTML = `-- <span class=\"unit\">°C</span>`;
   $("humidity").innerHTML = `-- <span class=\"unit\">%</span>`;
   $("feelsLikeText").textContent = "Feels like: --";
+  $("feelsLocal").innerHTML = `-- <span class=\"unit\">°C</span>`;
   $("comfortIndex").textContent = "--";
   $("wind").innerHTML = `-- <span class=\"unit\">km/h</span>`;
   $("pressure").innerHTML = `-- <span class=\"unit\">hPa</span>`;
@@ -915,13 +1028,10 @@ function checkSensorStaleness(){
   const age = Date.now() - lastSensorTimestamp;
   if (age > 60_000) { // older than 1 minute
     clearSensorDisplay();
-    // reset lastSensorTimestamp so we don't continuously clear
     lastSensorTimestamp = null;
-    // Also clear sensorUpdated display to indicate no recent sync
     $("sensorUpdated").textContent = '--';
   }
 }
-// run every 10s
 setInterval(checkSensorStaleness, 10_000);
 
 window.addEventListener("load",()=>{
@@ -931,12 +1041,8 @@ window.addEventListener("load",()=>{
   setTimeout(()=>$("splash").classList.add("hide"),1800);
 });
 
-// Keep fetching sensor data as before
 setInterval(fetchSensorData, 30000);
-
-setInterval(()=>{
-  if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
-},600000);
+setInterval(()=>{ if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation); },600000);
 </script>
 </body>
 </html>
