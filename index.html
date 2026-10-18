@@ -98,6 +98,23 @@ body::before{
   animation: logoSpinPulse 10s linear infinite;
 }
 
+/* Hero logo pop animation */
+@keyframes popInOut {
+  0% { transform: scale(0.9); opacity: 0; }
+  10% { transform: scale(1.08); opacity: 1; }
+  50% { transform: scale(0.95); opacity: 0.85; }
+  90% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0; }
+}
+.hero-logo{
+  width:120px;
+  height:auto;
+  display:block;
+  margin:0 0 18px 0;
+  animation: popInOut 4.5s ease-in-out infinite;
+  transform-origin:center center;
+}
+
 .top-clock{
   color:var(--muted);
   font-weight:700;
@@ -317,8 +334,8 @@ footer b{color:#8fa4bd}
 
 <header class="topbar">
   <a class="brand" href="#">
-    <!-- Rotating & Pulsing Team Aqua Logo (updated to repo screenshot image) -->
-    <img src="Screenshot 2026-09-29 221732.png" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">
+    <!-- Rotating & Pulsing Team Aqua Logo - set to FullLogo.jpg as requested -->
+    <img src="FullLogo.jpg" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">
     <div>
       <strong>TEAM AQUA</strong>
       <small>Smart Weather Station</small>
@@ -378,6 +395,9 @@ footer b{color:#8fa4bd}
 <main id="dashboard">
   <section class="hero">
     <div class="hero-card">
+      <!-- Larger popping logo near the hero card as requested -->
+      <img src="FullLogo.jpg" alt="Hero Logo" class="hero-logo" id="heroLogo">
+
       <div class="eyebrow">TEAM AQUA • LIVE SYSTEM</div>
       <h1>Weather data, <span>beautifully connected.</span></h1>
       <p>
@@ -471,6 +491,7 @@ footer b{color:#8fa4bd}
       <span class="pill" id="devicePill">WAITING</span>
     </div>
     <p class="info" id="deviceStatus">Waiting for ESP32...</p>
+    <div class="info" id="deviceDetails" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
   </section>
 
   <section class="section" id="music">
@@ -583,8 +604,8 @@ document.querySelectorAll("[data-action]").forEach(btn => {
     }
 
     if (action === "offline") {
-      $("temperature").innerHTML = `-- <span class="unit">°C</span>`;
-      $("humidity").innerHTML = `-- <span class="unit">%</span>`;
+      $("temperature").innerHTML = `-- <span class=\"unit\">°C</span>`;
+      $("humidity").innerHTML = `-- <span class=\"unit\">%</span>`;
       $("feelsLikeText").textContent = "Feels like: --";
       $("comfortIndex").textContent = "--";
       $("firebaseStatusText").textContent = "ESP32 sensor is offline (Manual override)";
@@ -601,7 +622,10 @@ document.querySelectorAll("[data-action]").forEach(btn => {
   });
 });
 
-// Calculates "Feels Like" and Thermal Comfort Index dynamically
+// Track last successful sensor fetch time (ms since epoch)
+let lastSensorTimestamp = null;
+
+// Calculates "Feels Like" and Thermal Comfort Index dynamically (based on local sensor values)
 function updateFeelsLikeAndComfort(temp, hum) {
   let feels = temp;
   if (temp >= 25 && hum > 30) {
@@ -633,40 +657,80 @@ async function fetchSensorData() {
     const data = snapshot.val();
 
     if (!data) {
+      // No data at all — do not fabricate anything
       $("firebaseStatusText").textContent = "Waiting for ESP32 readings...";
       $("firebaseStatus").classList.remove("ok");
       $("heroSensor").textContent = "Waiting";
       $("deviceStatus").textContent = "No sensor data received yet.";
-      $("devicePill").textContent = "WAITING";
+      $("devicePill").textContent = "NO DATA";
       return;
     }
 
-    const temp = data.Temperature !== undefined ? data.Temperature : data.temperature;
-    const hum = data.Humidity !== undefined ? data.Humidity : data.humidity;
+    // Real sensor fields (do not invent fields)
+    const temp = typeof data.Temperature === 'number' ? data.Temperature : (typeof data.temperature === 'number' ? data.temperature : null);
+    const hum = typeof data.Humidity === 'number' ? data.Humidity : (typeof data.humidity === 'number' ? data.humidity : null);
 
+    // Update displayed readings only when real numeric values exist
     if (typeof temp === "number") {
-      $("temperature").innerHTML = `${temp.toFixed(1)} <span class="unit">°C</span>`;
+      $("temperature").innerHTML = `${temp.toFixed(1)} <span class=\"unit\">°C</span>`;
     }
     if (typeof hum === "number") {
-      $("humidity").innerHTML = `${hum.toFixed(0)} <span class="unit">%</span>`;
+      $("humidity").innerHTML = `${hum.toFixed(0)} <span class=\"unit\">%</span>`;
     }
 
     if (typeof temp === "number" && typeof hum === "number") {
       updateFeelsLikeAndComfort(temp, hum);
     }
 
+    // Populate device information only from real fields present in data
+    // Check common keys without inventing anything
+    const deviceInfoKeys = ['device','Device','deviceInfo','DeviceInfo','device_name','deviceName'];
+    let foundDeviceInfo = null;
+    for (const k of deviceInfoKeys) {
+      if (data[k]) { foundDeviceInfo = {key:k, value:data[k]}; break; }
+    }
+
+    if (foundDeviceInfo) {
+      // If device info is an object with known properties, display them
+      const d = foundDeviceInfo.value;
+      $("devicePill").textContent = foundDeviceInfo.key.toUpperCase();
+      if (typeof d === 'object') {
+        const parts = [];
+        if (d.name) parts.push(`Name: ${d.name}`);
+        if (d.deviceId) parts.push(`ID: ${d.deviceId}`);
+        if (d.firmware) parts.push(`FW: ${d.firmware}`);
+        if (d.ip) parts.push(`IP: ${d.ip}`);
+        if (d.status) parts.push(`Status: ${d.status}`);
+        $("deviceDetails").textContent = parts.join(' • ');
+        $("deviceStatus").textContent = d.status ? d.status : 'Device information available';
+      } else {
+        // If it's a string, just show it
+        $("deviceDetails").textContent = String(d);
+        $("deviceStatus").textContent = 'Device information available';
+      }
+    } else {
+      // No device info provided by Firebase — be explicit and do not fabricate
+      $("devicePill").textContent = 'NO DEVICE INFO';
+      $("deviceStatus").textContent = 'No device information available from sensor data.';
+      $("deviceDetails").textContent = '';
+    }
+
+    // Set last sensor timestamp to now (this represents the last successful fetch)
+    lastSensorTimestamp = Date.now();
+    $("sensorUpdated").textContent = new Date(lastSensorTimestamp).toLocaleString();
+
     $("firebaseStatusText").textContent = "Weather data connected (30s sync)";
     $("firebaseStatus").classList.add("ok");
     $("firebaseStatus").classList.remove("bad");
     $("heroSensor").textContent = "Online";
-    $("devicePill").textContent = "ONLINE";
-    $("deviceStatus").textContent = "Sensor readings refreshed from ESP32.";
-    $("sensorUpdated").textContent = new Date().toLocaleTimeString();
+
   } catch (error) {
+    // On error, do not fabricate details — show the actual error
     $("firebaseStatusText").textContent = "Firebase error: " + error.message;
     $("firebaseStatus").classList.add("bad");
     $("devicePill").textContent = "ERROR";
     $("deviceStatus").textContent = error.message;
+    console.error(error);
   }
 }
 
@@ -701,8 +765,8 @@ async function loadWeather(latitude, longitude, locationName){
     const result=await response.json();
     const current=result.current;
 
-    $("wind").innerHTML=`${Number(current.wind_speed_10m).toFixed(1)} <span class="unit">km/h</span>`;
-    $("pressure").innerHTML=`${Number(current.pressure_msl).toFixed(0)} <span class="unit">hPa</span>`;
+    $("wind").innerHTML=`${Number(current.wind_speed_10m).toFixed(1)} <span class=\"unit\">km/h</span>`;
+    $("pressure").innerHTML=`${Number(current.pressure_msl).toFixed(0)} <span class=\"unit\">hPa</span>`;
     $("condition").textContent=conditionNames[current.weather_code] ?? "Weather condition unavailable";
     $("windDirection").textContent=getDirection(current.wind_direction_10m);
     $("weatherUpdated").textContent=new Date().toLocaleTimeString();
@@ -710,7 +774,7 @@ async function loadWeather(latitude, longitude, locationName){
 
     // New: populate the online 'feels like' using apparent_temperature when available
     if (current && (current.apparent_temperature !== undefined && current.apparent_temperature !== null)) {
-      $("feelsOnline").innerHTML = `${Number(current.apparent_temperature).toFixed(1)} <span class="unit">°C</span>`;
+      $("feelsOnline").innerHTML = `${Number(current.apparent_temperature).toFixed(1)} <span class=\"unit\">°C</span>`;
     } else if (result.hourly && result.hourly.apparent_temperature) {
       // fallback to hourly nearest hour
       const now = new Date();
@@ -734,7 +798,7 @@ async function loadWeather(latitude, longitude, locationName){
       }
       const val = temps[idx];
       if (val !== undefined && val !== null) {
-        $("feelsOnline").innerHTML = `${Number(val).toFixed(1)} <span class="unit">°C</span>`;
+        $("feelsOnline").innerHTML = `${Number(val).toFixed(1)} <span class=\"unit\">°C</span>`;
       }
     }
 
@@ -830,6 +894,36 @@ function updateTopClock(){
 updateTopClock();
 setInterval(updateTopClock, 1000);
 
+// ---------- Staleness check: clear displayed sensor data if no new data in 1 minute ----------
+function clearSensorDisplay() {
+  // Clear only the displayed values, do not fabricate
+  $("temperature").innerHTML = `-- <span class=\"unit\">°C</span>`;
+  $("humidity").innerHTML = `-- <span class=\"unit\">%</span>`;
+  $("feelsLikeText").textContent = "Feels like: --";
+  $("comfortIndex").textContent = "--";
+  $("wind").innerHTML = `-- <span class=\"unit\">km/h</span>`;
+  $("pressure").innerHTML = `-- <span class=\"unit\">hPa</span>`;
+  $("feelsOnline").innerHTML = `-- <span class=\"unit\">°C</span>`;
+  $("firebaseStatusText").textContent = "No recent data — values cleared after 1 minute without new readings.";
+  $("firebaseStatus").classList.remove("ok");
+  $("firebaseStatus").classList.add("bad");
+  $("heroSensor").textContent = "Stale";
+}
+
+function checkSensorStaleness(){
+  if (!lastSensorTimestamp) return; // no data ever received
+  const age = Date.now() - lastSensorTimestamp;
+  if (age > 60_000) { // older than 1 minute
+    clearSensorDisplay();
+    // reset lastSensorTimestamp so we don't continuously clear
+    lastSensorTimestamp = null;
+    // Also clear sensorUpdated display to indicate no recent sync
+    $("sensorUpdated").textContent = '--';
+  }
+}
+// run every 10s
+setInterval(checkSensorStaleness, 10_000);
+
 window.addEventListener("load",()=>{
   detectLocation();
   updateMusicState();
@@ -837,6 +931,7 @@ window.addEventListener("load",()=>{
   setTimeout(()=>$("splash").classList.add("hide"),1800);
 });
 
+// Keep fetching sensor data as before
 setInterval(fetchSensorData, 30000);
 
 setInterval(()=>{
