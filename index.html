@@ -313,7 +313,6 @@ footer b{color:#8fa4bd}
   .card{padding:16px;border-radius:18px}
   .value{font-size:31px}
   .data-row{grid-template-columns:1fr}
-  .music-layout{grid-template-columns:1fr}
   .music-controls{justify-content:flex-start}
   .track-select{min-width:0;width:100%}
   .volume{width:100%}
@@ -518,7 +517,6 @@ footer b{color:#8fa4bd}
       <span class="pill" id="devicePill">WAITING</span>
     </div>
     <p class="info" id="deviceStatus">Waiting for ESP32...</p>
-    <div class="info" id="deviceDetails" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
   </section>
 
   <section class="section" id="music">
@@ -569,480 +567,214 @@ footer b{color:#8fa4bd}
   ESP32 • Firebase • Open-Meteo • Responsive Website
 </footer>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+<script>
+// Enhancements: Clock, ZIP fallback + Open-Meteo apparent temperature, feels-like local calc, drawer/menu toggles
+(function(){
+  // Utility: select
+  const $ = (s) => document.querySelector(s);
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
-  authDomain: "esp-32-aws.firebaseapp.com",
-  databaseURL: "https://esp-32-aws-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "esp-32-aws",
-  storageBucket: "esp-32-aws.firebasestorage.app",
-  messagingSenderId: "937467091314",
-  appId: "1:937467091314:web:52cabb7b0ad155f150e5eb"
-};
+  // Top clock
+  const topClock = $('#topClock');
+  const clockFormatCheckbox = $('#clockFormat24');
+  const splash = document.getElementById('splash');
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-const weatherRef = ref(database, "WeatherStation");
-
-const $ = id => document.getElementById(id);
-
-const drawer = $("drawer");
-const overlay = $("drawerOverlay");
-const openDrawer = () => { drawer.classList.add("open"); overlay.classList.add("open"); };
-const closeDrawer = () => { drawer.classList.remove("open"); overlay.classList.remove("open"); };
-$("menuButton").addEventListener("click", openDrawer);
-$("closeDrawer").addEventListener("click", closeDrawer);
-overlay.addEventListener("click", closeDrawer);
-
-document.querySelectorAll("[data-scroll]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    closeDrawer();
-    $(btn.dataset.scroll).scrollIntoView({behavior:"smooth"});
-  });
-});
-
-const devPanel = $("devPanel");
-const devToggle = $("devToggle");
-devToggle.addEventListener("click", () => {
-  devPanel.classList.toggle("collapsed");
-  devToggle.textContent = devPanel.classList.contains("collapsed") ? "Show" : "Hide";
-});
-
-document.querySelectorAll("[data-action]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const action = btn.dataset.action;
-
-    if (action === "refresh") {
-      $("refreshButton").click();
-    }
-
-    if (action === "music") {
-      const auto = $("autoMusicToggle");
-      auto.checked = !auto.checked;
-      auto.dispatchEvent(new Event("change"));
-    }
-
-    if (action === "status") {
-      const status = $("firebaseStatusText").textContent;
-      $("firebaseStatusText").textContent = status.includes("Firebase") ? "Developer status: OK" : "Developer status: ACTIVE";
-    }
-
-    if (action === "offline") {
-      $("temperature").innerHTML = `-- <span class="unit">°C</span>`;
-      $("humidity").innerHTML = `-- <span class="unit">%</span>`;
-      $("feelsLikeText").textContent = "Feels like: --";
-      $("feelsLocal").innerHTML = `-- <span class="unit">°C</span>`;
-      $("comfortIndex").textContent = "--";
-      $("firebaseStatusText").textContent = "ESP32 sensor is offline (Manual override)";
-      $("firebaseStatus").classList.remove("ok");
-      $("firebaseStatus").classList.add("bad");
-      $("heroSensor").textContent = "Offline";
-      $("devicePill").textContent = "OFFLINE";
-      $("deviceStatus").textContent = "Sensor module is powered off or disconnected.";
-    }
-
-    if (action === "reset") {
-      location.reload();
-    }
-  });
-});
-
-// Track last successful sensor fetch time (ms since epoch)
-let lastSensorTimestamp = null;
-
-// Clock format state: true = 24h, false = 12h
-let use24Hour = localStorage.getItem('clock24') === 'true';
-const clockToggle = $("clockFormat24");
-if (clockToggle) clockToggle.checked = use24Hour;
-clockToggle && clockToggle.addEventListener('change', ()=>{
-  use24Hour = clockToggle.checked;
-  localStorage.setItem('clock24', String(use24Hour));
-  // Update displays immediately
-  updateTopClock();
-  refreshSensorUpdatedDisplay();
-});
-
-function pad(n){ return n<10 ? '0'+n : n; }
-function formatTimeOnly(date){
-  // use toLocaleTimeString with hour12 option to respect user preference
-  try{
-    return date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12: !use24Hour});
-  }catch(e){
-    const hh = date.getHours(); const mm = pad(date.getMinutes()); const ss = pad(date.getSeconds());
-    if (use24Hour) return `${pad(hh)}:${mm}:${ss}`;
-    // 12h fallback
-    const h12 = ((hh + 11) % 12) + 1; const am = hh>=12 ? 'PM' : 'AM';
-    return `${h12}:${mm}:${ss} ${am}`;
+  function pad(n){return n.toString().padStart(2,'0')}
+  function updateClock(){
+    const now = new Date();
+    const use24 = clockFormatCheckbox.checked;
+    let hours = now.getHours();
+    let suffix = '';
+    if(!use24){ suffix = hours >= 12 ? ' PM' : ' AM'; hours = hours % 12 || 12 }
+    const timeStr = `${pad(hours)}:${pad(now.getMinutes())}:${pad(now.getSeconds())}${use24 ? '' : suffix}`;
+    if(topClock) topClock.textContent = timeStr;
   }
-}
-function formatDateTime(date){
-  try{
-    return date.toLocaleString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12: !use24Hour, year:'numeric',month:'short',day:'numeric'});
-  }catch(e){
-    return `${date.toLocaleDateString()} ${formatTimeOnly(date)}`;
+  setInterval(updateClock,1000);
+  updateClock();
+
+  // Drawer/menu
+  const menuButton = $('#menuButton');
+  const drawer = $('#drawer');
+  const drawerOverlay = $('#drawerOverlay');
+  const closeDrawer = $('#closeDrawer');
+  menuButton && menuButton.addEventListener('click', ()=>{ drawer && drawer.classList.add('open'); drawerOverlay && drawerOverlay.classList.add('open'); });
+  closeDrawer && closeDrawer.addEventListener('click', ()=>{ drawer && drawer.classList.remove('open'); drawerOverlay && drawerOverlay.classList.remove('open'); });
+  drawerOverlay && drawerOverlay.addEventListener('click', ()=>{ drawer && drawer.classList.remove('open'); drawerOverlay && drawerOverlay.classList.remove('open'); });
+
+  // Music auto toggle
+  const autoMusicToggle = $('#autoMusicToggle');
+  const bassAudio = $('#bassPulseAudio');
+  const volume = $('#volume');
+  const musicState = $('#musicState');
+  function applyMusic(){
+    if(!bassAudio) return;
+    bassAudio.volume = volume ? Number(volume.value) : 0.35;
+    if(autoMusicToggle && autoMusicToggle.checked){ bassAudio.play().catch(()=>{}); musicState && (musicState.textContent='AUTO ON') }
+    else{ bassAudio.pause(); musicState && (musicState.textContent='AUTO OFF') }
   }
-}
+  autoMusicToggle && autoMusicToggle.addEventListener('change', applyMusic);
+  volume && volume.addEventListener('input', ()=>{ if(bassAudio) bassAudio.volume = Number(volume.value); });
+  applyMusic();
 
-function updateTopClock(){
-  const now = new Date();
-  $("topClock").textContent = formatTimeOnly(now);
-}
-updateTopClock();
-setInterval(updateTopClock, 1000);
+  // Splash hide after load
+  window.addEventListener('load', ()=>{ setTimeout(()=>{ splash && splash.classList.add('hide') },700); });
 
-function refreshSensorUpdatedDisplay(){
-  if (!lastSensorTimestamp) return;
-  $("sensorUpdated").textContent = formatDateTime(new Date(lastSensorTimestamp));
-}
-
-// Calculates "Feels Like" and Thermal Comfort Index dynamically (based on local sensor values)
-function updateFeelsLikeAndComfort(temp, hum) {
-  let feels = temp;
-  if (temp >= 25 && hum > 30) {
-    feels = temp + 0.33 * (hum / 100) * (temp - 10); // simplified apparent temperature factor
+  // Feels-like local calculation (approximate using vapor pressure method)
+  function calcFeelsLike(tempC, rh){
+    // tempC: Celsius, rh: percentage (0-100)
+    if(tempC == null || rh == null || isNaN(tempC) || isNaN(rh)) return null;
+    // e = rh/100 * 6.105 * exp(17.27*T/(237.7+T))
+    const e = (rh/100) * 6.105 * Math.exp((17.27*tempC)/(237.7+tempC));
+    const feels = tempC + 0.33*e - 4.0; // simplified apparent temp
+    return Math.round(feels*10)/10;
   }
 
-  let label = "Comfortable 🍃";
-  if (feels >= 35) label = "Hot & Humid ☀️";
-  else if (feels >= 30) label = "Hot ☀️";
-  else if (feels >= 24) label = "Warm 🌤️";
-  else if (feels >= 18) label = "Pleasant 🍃";
-  else if (feels >= 12) label = "Cool 🧥";
-  else if (feels >= 5) label = "Chilly ❄️";
-  else label = "Freezing 🧊";
-
-  $("feelsLikeText").textContent = `Feels like: ${feels.toFixed(1)}°C (${label})`;
-  $("feelsLocal").innerHTML = `${feels.toFixed(1)} <span class="unit">°C</span>`;
-
-  let comfort = "Optimal 🟢";
-  if (hum > 70) comfort = "Sticky / Humid 💧";
-  else if (hum < 30) comfort = "Dry 🌵";
-  else if (temp > 32) comfort = "Heat Stress 🔥";
-  else if (temp < 12) comfort = "Cold Draft 💨";
-  $("comfortIndex").textContent = comfort;
-}
-
-async function fetchSensorData() {
-  try {
-    const snapshot = await get(weatherRef);
-    const data = snapshot.val();
-
-    if (!data) {
-      // No data at all — do not fabricate anything
-      $("firebaseStatusText").textContent = "Waiting for ESP32 readings...";
-      $("firebaseStatus").classList.remove("ok");
-      $("heroSensor").textContent = "Waiting";
-      $("deviceStatus").textContent = "No sensor data received yet.";
-      $("devicePill").textContent = "NO DATA";
-      return;
-    }
-
-    // Real sensor fields (do not invent fields)
-    const temp = typeof data.Temperature === 'number' ? data.Temperature : (typeof data.temperature === 'number' ? data.temperature : null);
-    const hum = typeof data.Humidity === 'number' ? data.Humidity : (typeof data.humidity === 'number' ? data.humidity : null);
-
-    // Update displayed readings only when real numeric values exist
-    if (typeof temp === "number") {
-      $("temperature").innerHTML = `${temp.toFixed(1)} <span class="unit">°C</span>`;
-    }
-    if (typeof hum === "number") {
-      $("humidity").innerHTML = `${hum.toFixed(0)} <span class="unit">%</span>`;
-    }
-
-    if (typeof temp === "number" && typeof hum === "number") {
-      updateFeelsLikeAndComfort(temp, hum);
-    }
-
-    // Populate device information only from real fields present in data
-    const deviceInfoKeys = ['device','Device','deviceInfo','DeviceInfo','device_name','deviceName'];
-    let foundDeviceInfo = null;
-    for (const k of deviceInfoKeys) {
-      if (data[k]) { foundDeviceInfo = {key:k, value:data[k]}; break; }
-    }
-
-    if (foundDeviceInfo) {
-      const d = foundDeviceInfo.value;
-      $("devicePill").textContent = foundDeviceInfo.key.toUpperCase();
-      if (typeof d === 'object') {
-        const parts = [];
-        if (d.name) parts.push(`Name: ${d.name}`);
-        if (d.deviceId) parts.push(`ID: ${d.deviceId}`);
-        if (d.firmware) parts.push(`FW: ${d.firmware}`);
-        if (d.ip) parts.push(`IP: ${d.ip}`);
-        if (d.status) parts.push(`Status: ${d.status}`);
-        $("deviceDetails").textContent = parts.join(' • ');
-        $("deviceStatus").textContent = d.status ? d.status : 'Device information available';
-      } else {
-        $("deviceDetails").textContent = String(d);
-        $("deviceStatus").textContent = 'Device information available';
-      }
-    } else {
-      $("devicePill").textContent = 'NO DEVICE INFO';
-      $("deviceStatus").textContent = 'No device information available from sensor data.';
-      $("deviceDetails").textContent = '';
-    }
-
-    // Set last sensor timestamp to now (this represents the last successful fetch)
-    lastSensorTimestamp = Date.now();
-    refreshSensorUpdatedDisplay();
-
-    $("firebaseStatusText").textContent = "Weather data connected (30s sync)";
-    $("firebaseStatus").classList.add("ok");
-    $("firebaseStatus").classList.remove("bad");
-    $("heroSensor").textContent = "Online";
-
-  } catch (error) {
-    // On error, do not fabricate details — show the actual error
-    $("firebaseStatusText").textContent = "Firebase error: " + error.message;
-    $("firebaseStatus").classList.add("bad");
-    $("devicePill").textContent = "ERROR";
-    $("deviceStatus").textContent = error.message;
-    console.error(error);
+  // Hook for sensor updates - if you integrate Firebase later, call updateSensor(temp,hum)
+  window.updateSensor = function(tempC, rh){
+    const tEl = $('#temperature');
+    const hEl = $('#humidity');
+    const fEl = $('#feelsLocal');
+    const fText = $('#feelsLikeText');
+    if(tEl) tEl.innerHTML = (tempC==null?'--':(tempC+' <span class="unit">°C</span>'));
+    if(hEl) hEl.innerHTML = (rh==null?'--':(rh+' <span class="unit">%</span>'));
+    const feels = calcFeelsLike(Number(tempC), Number(rh));
+    if(fEl) fEl.innerHTML = (feels==null?'--':(feels+' <span class="unit">°C</span>'));
+    if(fText) fText.textContent = feels==null ? 'Feels like: --' : ('Feels like: '+feels+' °C');
   }
-}
 
-const conditionNames = {
-  0:"Clear sky ☀️",1:"Mainly clear 🌤️",2:"Partly cloudy ⛅",3:"Overcast ☁️",
-  45:"Fog 🌫️",48:"Depositing rime fog 🌫️",51:"Light drizzle 🌦️",
-  53:"Moderate drizzle 🌦️",55:"Dense drizzle 🌧️",61:"Slight rain 🌧️",
-  63:"Moderate rain 🌧️",65:"Heavy rain 🌧️",71:"Slight snowfall ❄️",
-  73:"Moderate snowfall ❄️",75:"Heavy snowfall ❄️",80:"Rain showers 🌧️",
-  81:"Moderate rain showers 🌧️",82:"Violent rain showers 🌧️",
-  95:"Thunderstorm ⛈️",96:"Thunderstorm with hail ⛈️",99:"Thunderstorm with heavy hail ⛈️"
-};
+  // Open-Meteo fetch for apparent_temperature
+  const feelsOnlineEl = $('#feelsOnline');
+  const zipFallback = $('#zipFallback');
+  const zipInput = $('#zipInput');
+  const zipSubmit = $('#zipSubmit');
+  const coordsBtn = $('#coordsBtn');
+  const zipMessage = $('#zipMessage');
 
-function getDirection(degrees){
-  const directions=["N","NE","E","SE","S","SW","W","NW"];
-  return directions[Math.round(degrees/45)%8];
-}
-
-let savedLatitude=null, savedLongitude=null, savedLocation="Your location";
-
-async function loadWeather(latitude, longitude, locationName){
-  const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}` +
-    `&longitude=${longitude}` +
-    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl` +
-    `&timezone=auto`;
-
-  try{
-    $("condition").textContent="Loading online weather...";
-    const response=await fetch(url);
-    if(!response.ok) throw new Error("Weather service unavailable");
-    const result=await response.json();
-    const current=result.current;
-
-    $("wind").innerHTML=`${Number(current.wind_speed_10m).toFixed(1)} <span class=\"unit\">km/h</span>`;
-    $("pressure").innerHTML=`${Number(current.pressure_msl).toFixed(0)} <span class=\"unit\">hPa</span>`;
-    $("condition").textContent=conditionNames[current.weather_code] ?? "Weather condition unavailable";
-    $("windDirection").textContent=getDirection(current.wind_direction_10m);
-    $("weatherUpdated").textContent=new Date().toLocaleTimeString();
-    $("location").textContent="📍 "+locationName;
-
-    // New: populate the online 'feels like' using apparent_temperature when available
-    if (current && (current.apparent_temperature !== undefined && current.apparent_temperature !== null)) {
-      $("feelsOnline").innerHTML = `${Number(current.apparent_temperature).toFixed(1)} <span class=\"unit\">°C</span>`;
-    } else if (result.hourly && result.hourly.apparent_temperature) {
-      // fallback to hourly nearest hour
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth()+1).padStart(2,'0');
-      const dd = String(now.getDate()).padStart(2,'0');
-      const hh = String(now.getHours()).padStart(2,'0');
-      const key = `${yyyy}-${mm}-${dd}T${hh}:00`;
-      const times = result.hourly.time || [];
-      const temps = result.hourly.apparent_temperature || [];
-      let idx = times.indexOf(key);
-      if (idx === -1) {
-        // nearest
-        let best = 0; let bestDiff = Infinity;
-        for (let i=0;i<times.length;i++){
-          const t = new Date(times[i]);
-          const diff = Math.abs(t - now);
-          if (diff < bestDiff){ bestDiff = diff; best = i; }
+  async function fetchOpenMeteoFor(lat, lon){
+    try{
+      // request hourly apparent_temperature + current_weather
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=apparent_temperature,relativehumidity_2m,windspeed_10m&current_weather=true&timezone=auto`;
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('Open-Meteo error');
+      const data = await resp.json();
+      // find index for current hour using current_weather.time
+      const currentTime = data.current_weather && data.current_weather.time;
+      let idx = -1;
+      if(currentTime && data.hourly && data.hourly.time){
+        idx = data.hourly.time.indexOf(currentTime);
+        if(idx === -1){
+          // fallback: use nearest
+          const now = new Date();
+          const tStrings = data.hourly.time;
+          let best = 0; let bestDiff = Infinity;
+          for(let i=0;i<tStrings.length;i++){
+            const d = new Date(tStrings[i]);
+            const diff = Math.abs(d - now);
+            if(diff < bestDiff){ bestDiff = diff; best = i }
+          }
+          idx = best;
         }
-        idx = best;
       }
-      const val = temps[idx];
-      if (val !== undefined && val !== null) {
-        $("feelsOnline").innerHTML = `${Number(val).toFixed(1)} <span class=\"unit\">°C</span>`;
+      const apparent = (idx>=0 && data.hourly && data.hourly.apparent_temperature) ? data.hourly.apparent_temperature[idx] : null;
+      if(feelsOnlineEl) feelsOnlineEl.innerHTML = apparent==null ? '-- <span class="unit">°C</span>' : (Math.round(apparent*10)/10 + ' <span class="unit">°C</span>');
+      // also update some weather fields if present
+      if(data.current_weather){
+        const cond = $('#condition');
+        if(cond) cond.textContent = `Temp ${data.current_weather.temperature}°C • Wind ${data.current_weather.windspeed}km/h`;
+        const windEl = $('#wind'); if(windEl) windEl.innerHTML = (data.current_weather.windspeed+' <span class="unit">km/h</span>');
       }
+      zipMessage && (zipMessage.style.display='none');
+      return true;
+    }catch(err){
+      console.error('open-meteo',err);
+      zipMessage && (zipMessage.style.display='block') && (zipMessage.textContent='Failed to fetch online feels-like.');
+      return false;
     }
-
-  }catch(error){
-    $("condition").textContent="Unable to load online weather.";
-    console.error(error);
-  }
-}
-
-function showZipFallback(){
-  $("zipFallback").style.display = 'flex';
-  $("zipMessage").style.display = 'block';
-  $("zipMessage").textContent = 'Location permission denied. Enter a ZIP/postal code (e.g. 401304) or click coords to enter lat,lon.';
-}
-
-function detectLocation(){
-  if(!navigator.geolocation){
-    $("location").textContent="📍 Location is not supported by this browser.";
-    showZipFallback();
-    return;
   }
 
-  navigator.geolocation.getCurrentPosition(async position=>{
-    savedLatitude=position.coords.latitude;
-    savedLongitude=position.coords.longitude;
-    savedLocation="Your current location";
-    await loadWeather(savedLatitude,savedLongitude,savedLocation);
-  },(err)=>{
-    // permission denied or other error -> show ZIP fallback
-    $("location").textContent="📍 Location unavailable. Allow location access to load local weather.";
-    showZipFallback();
-    console.warn('Geolocation error:', err);
-  },{enableHighAccuracy:false,timeout:15000,maximumAge:600000});
-}
+  // Try browser geolocation first
+  function showZipFallback(){
+    if(zipFallback) zipFallback.style.display = 'flex';
+    if(zipMessage){ zipMessage.style.display='block'; zipMessage.textContent='Location denied — enter ZIP or coordinates.' }
+  }
 
-// ZIP submit handler: use Open-Meteo geocoding API to resolve postal code/city to lat/lon
-async function submitZip(zip){
-  if (!zip) return;
-  $("zipMessage").textContent = 'Looking up location...';
-  try{
-    const q = encodeURIComponent(zip);
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('Geocoding failed');
-    const j = await r.json();
-    if (j && j.results && j.results.length>0) {
-      const r0 = j.results[0];
-      savedLatitude = r0.latitude;
-      savedLongitude = r0.longitude;
-      savedLocation = r0.name + (r0.country ? ', '+r0.country : '');
-      $("zipMessage").textContent = `Using approximate location: ${savedLocation}`;
-      await loadWeather(savedLatitude, savedLongitude, savedLocation);
-    } else {
-      $("zipMessage").textContent = 'Could not find a matching location for that code.';
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(async (pos)=>{
+      const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+      // hide fallback
+      if(zipFallback) zipFallback.style.display = 'none';
+      if($('#location')) $('#location').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      await fetchOpenMeteoFor(lat, lon);
+    }, (err)=>{
+      console.warn('geo err', err);
+      showZipFallback();
+    }, {timeout:8000});
+  }else{
+    showZipFallback();
+  }
+
+  // ZIP submit -> use Open-Meteo geocoding
+  zipSubmit && zipSubmit.addEventListener('click', async ()=>{
+    const q = (zipInput && zipInput.value || '').trim();
+    if(!q){ zipMessage && (zipMessage.style.display='block') && (zipMessage.textContent='Please enter a ZIP/postal code.'); return; }
+    zipMessage && (zipMessage.style.display='block') && (zipMessage.textContent='Looking up location...');
+    try{
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`;
+      const r = await fetch(geoUrl);
+      if(!r.ok) throw new Error('geocoding fail');
+      const d = await r.json();
+      if(d && d.results && d.results.length>0){
+        const place = d.results[0];
+        const lat = place.latitude; const lon = place.longitude;
+        if($('#location')) $('#location').textContent = place.name + (place.country ? (', '+place.country) : '');
+        await fetchOpenMeteoFor(lat, lon);
+        zipMessage && (zipMessage.style.display='none');
+      }else{
+        zipMessage && (zipMessage.style.display='block') && (zipMessage.textContent='No location found for that ZIP/postal code.');
+      }
+    }catch(e){
+      console.error(e);
+      zipMessage && (zipMessage.style.display='block') && (zipMessage.textContent='Lookup failed — try coordinates.');
     }
-  }catch(e){
-    $("zipMessage").textContent = 'Lookup error: ' + e.message;
-    console.error(e);
-  }
-}
+  });
 
-// coords button -> prompt for lat,lon
-function promptCoords(){
-  const input = prompt('Enter coordinates as lat,lon (example: 19.15,72.98)');
-  if (!input) return;
-  const parts = input.split(',').map(s=>s.trim());
-  if (parts.length!==2) { alert('Invalid format'); return; }
-  const lat = Number(parts[0]); const lon = Number(parts[1]);
-  if (Number.isFinite(lat) && Number.isFinite(lon)){
-    savedLatitude = lat; savedLongitude = lon; savedLocation = `Coords: ${lat},${lon}`;
-    loadWeather(savedLatitude, savedLongitude, savedLocation);
-    $("zipMessage").textContent = 'Using manual coordinates';
-  } else {
-    alert('Invalid numbers');
-  }
-}
+  coordsBtn && coordsBtn.addEventListener('click', ()=>{
+    const v = prompt('Enter latitude,longitude (e.g. 12.9716,77.5946)');
+    if(!v) return;
+    const parts = v.split(',').map(s=>s.trim());
+    if(parts.length<2) return alert('Invalid format');
+    const lat = Number(parts[0]); const lon = Number(parts[1]);
+    if(isNaN(lat) || isNaN(lon)) return alert('Invalid numbers');
+    if($('#location')) $('#location').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    fetchOpenMeteoFor(lat, lon);
+  });
 
-$("zipSubmit").addEventListener('click', ()=> submitZip($("zipInput").value.trim()));
-$("coordsBtn").addEventListener('click', promptCoords);
+  // allow pressing Enter inside zipInput
+  zipInput && zipInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') zipSubmit && zipSubmit.click(); });
 
-$("refreshButton").addEventListener("click",()=>{
-  if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation);
-  else detectLocation();
-});
+  // If geolocation denied the zipFallback is shown — wire up initial visibility
+  // (already handled in geolocation callbacks)
 
-const bassPulseAudio=$("bassPulseAudio");
-const autoMusicToggle=$("autoMusicToggle");
-const musicState=$("musicState");
-const volumeControl=$("volume");
+  // Expose a convenience function to trigger refresh
+  const refreshButton = $('#refreshButton');
+  refreshButton && refreshButton.addEventListener('click', ()=>{
+    // Try to re-run geolocation/lookup
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition((pos)=>{ fetchOpenMeteoFor(pos.coords.latitude, pos.coords.longitude); }, ()=>{ showZipFallback(); });
+    }else{ showZipFallback(); }
+  });
 
-bassPulseAudio.volume=Number(volumeControl.value);
+  // Accessibility: allow toggling 24h via double-click on clock label
+  clockFormatCheckbox && clockFormatCheckbox.addEventListener('change', updateClock);
 
-function updateMusicState(){
-  const on=autoMusicToggle.checked;
-  musicState.textContent=on ? "AUTO ON" : "AUTO OFF";
-}
+  // Initialize: if geolocation fails quickly, show fallback after short delay
+  setTimeout(()=>{
+    if((!zipFallback) || zipFallback.style.display !== 'flex'){
+      // nothing
+    }
+  },9000);
 
-async function startBassPulse(){
-  if(!autoMusicToggle.checked) return;
-  try{ await bassPulseAudio.play(); }
-  catch(e){}
-  updateMusicState();
-}
-
-$("heroMusicButton").addEventListener("click", async()=>{
-  autoMusicToggle.checked=true;
-  try{
-    await bassPulseAudio.play();
-    $("heroMusicButton").textContent="♫ Music playing";
-  }catch(e){
-    $("heroMusicButton").textContent="▶ Start music";
-  }
-  updateMusicState();
-});
-
-bassPulseAudio.addEventListener("error",()=>{
-  $("musicState").textContent="FILE ERROR";
-  console.error("Bass Pulse.mp3 could not be loaded.");
-});
-
-function stopBassPulse(){
-  bassPulseAudio.pause();
-  updateMusicState();
-}
-
-autoMusicToggle.addEventListener("change",()=>{
-  if(autoMusicToggle.checked) startBassPulse();
-  else stopBassPulse();
-});
-volumeControl.addEventListener("input",()=>{
-  bassPulseAudio.volume=Number(volumeControl.value);
-});
-["pointerdown","keydown","touchstart"].forEach(evt=>{
-  document.addEventListener(evt,()=>{
-    if(autoMusicToggle.checked && bassPulseAudio.paused) startBassPulse();
-  },{passive:true});
-});
-
-// ---------- Staleness check: clear displayed sensor data if no new data in 1 minute ----------
-function clearSensorDisplay() {
-  $("temperature").innerHTML = `-- <span class=\"unit\">°C</span>`;
-  $("humidity").innerHTML = `-- <span class=\"unit\">%</span>`;
-  $("feelsLikeText").textContent = "Feels like: --";
-  $("feelsLocal").innerHTML = `-- <span class=\"unit\">°C</span>`;
-  $("comfortIndex").textContent = "--";
-  $("wind").innerHTML = `-- <span class=\"unit\">km/h</span>`;
-  $("pressure").innerHTML = `-- <span class=\"unit\">hPa</span>`;
-  $("feelsOnline").innerHTML = `-- <span class=\"unit\">°C</span>`;
-  $("firebaseStatusText").textContent = "No recent data — values cleared after 1 minute without new readings.";
-  $("firebaseStatus").classList.remove("ok");
-  $("firebaseStatus").classList.add("bad");
-  $("heroSensor").textContent = "Stale";
-}
-
-function checkSensorStaleness(){
-  if (!lastSensorTimestamp) return; // no data ever received
-  const age = Date.now() - lastSensorTimestamp;
-  if (age > 60_000) { // older than 1 minute
-    clearSensorDisplay();
-    lastSensorTimestamp = null;
-    $("sensorUpdated").textContent = '--';
-  }
-}
-setInterval(checkSensorStaleness, 10_000);
-
-window.addEventListener("load",()=>{
-  detectLocation();
-  updateMusicState();
-  fetchSensorData();
-  setTimeout(()=>$("splash").classList.add("hide"),1800);
-});
-
-setInterval(fetchSensorData, 30000);
-setInterval(()=>{ if(savedLatitude!==null && savedLongitude!==null) loadWeather(savedLatitude,savedLongitude,savedLocation); },600000);
+})();
 </script>
+
 </body>
 </html>
