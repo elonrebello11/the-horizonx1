@@ -446,14 +446,6 @@ footer b{color:#8fa4bd}
   </div>
 
   <section class="grid">
-    <!-- Feels Like separate card (local sensor based) -->
-    <div class="card">
-      <div class="card-top"><div class="icon">🌡️</div><span class="badge">FEELS</span></div>
-      <div class="label">Feels like (sensor)</div>
-      <div class="value temperature" id="feelsLocal">-- <span class="unit">°C</span></div>
-      <div class="info" id="feelsLikeText">Feels like: --</div>
-    </div>
-
     <div class="card">
       <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>
       <div class="label">Temperature</div>
@@ -475,9 +467,14 @@ footer b{color:#8fa4bd}
       <div class="info">Online weather data</div>
     </div>
 
+    <div class="card">
+      <div class="card-top"><div class="icon">📈</div><span class="badge">ONLINE</span></div>
+      <div class="label">Pressure</div>
+      <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>
+      <div class="info">Live atmospheric pressure</div>
+    </div>
   </section>
 
-  <!-- New: Feels Like (Online) section using Open-Meteo apparent_temperature -->
   <section class="section">
     <div class="section-head">
       <h2>🌡️ Feels Like (Online)</h2>
@@ -488,7 +485,6 @@ footer b{color:#8fa4bd}
       <div class="value temperature" id="feelsOnline">-- <span class="unit">°C</span></div>
       <div class="info">Based on Open‑Meteo's apparent_temperature</div>
 
-      <!-- ZIP fallback when geolocation is denied -->
       <div class="zip-fallback" id="zipFallback" style="display:none">
         <input id="zipInput" placeholder="Enter ZIP / postal code (e.g. 401304)">
         <button id="zipSubmit">Use ZIP</button>
@@ -568,12 +564,9 @@ footer b{color:#8fa4bd}
 </footer>
 
 <script>
-// Enhancements: Clock, ZIP fallback + Open-Meteo apparent temperature, feels-like local calc, drawer/menu toggles
 (function(){
-  // Utility: select
   const $ = (s) => document.querySelector(s);
 
-  // Top clock
   const topClock = $('#topClock');
   const clockFormatCheckbox = $('#clockFormat24');
   const splash = document.getElementById('splash');
@@ -591,7 +584,6 @@ footer b{color:#8fa4bd}
   setInterval(updateClock,1000);
   updateClock();
 
-  // Drawer/menu
   const menuButton = $('#menuButton');
   const drawer = $('#drawer');
   const drawerOverlay = $('#drawerOverlay');
@@ -600,7 +592,6 @@ footer b{color:#8fa4bd}
   closeDrawer && closeDrawer.addEventListener('click', ()=>{ drawer && drawer.classList.remove('open'); drawerOverlay && drawerOverlay.classList.remove('open'); });
   drawerOverlay && drawerOverlay.addEventListener('click', ()=>{ drawer && drawer.classList.remove('open'); drawerOverlay && drawerOverlay.classList.remove('open'); });
 
-  // Music auto toggle
   const autoMusicToggle = $('#autoMusicToggle');
   const bassAudio = $('#bassPulseAudio');
   const volume = $('#volume');
@@ -615,33 +606,8 @@ footer b{color:#8fa4bd}
   volume && volume.addEventListener('input', ()=>{ if(bassAudio) bassAudio.volume = Number(volume.value); });
   applyMusic();
 
-  // Splash hide after load
   window.addEventListener('load', ()=>{ setTimeout(()=>{ splash && splash.classList.add('hide') },700); });
 
-  // Feels-like local calculation (approximate using vapor pressure method)
-  function calcFeelsLike(tempC, rh){
-    // tempC: Celsius, rh: percentage (0-100)
-    if(tempC == null || rh == null || isNaN(tempC) || isNaN(rh)) return null;
-    // e = rh/100 * 6.105 * exp(17.27*T/(237.7+T))
-    const e = (rh/100) * 6.105 * Math.exp((17.27*tempC)/(237.7+tempC));
-    const feels = tempC + 0.33*e - 4.0; // simplified apparent temp
-    return Math.round(feels*10)/10;
-  }
-
-  // Hook for sensor updates - if you integrate Firebase later, call updateSensor(temp,hum)
-  window.updateSensor = function(tempC, rh){
-    const tEl = $('#temperature');
-    const hEl = $('#humidity');
-    const fEl = $('#feelsLocal');
-    const fText = $('#feelsLikeText');
-    if(tEl) tEl.innerHTML = (tempC==null?'--':(tempC+' <span class="unit">°C</span>'));
-    if(hEl) hEl.innerHTML = (rh==null?'--':(rh+' <span class="unit">%</span>'));
-    const feels = calcFeelsLike(Number(tempC), Number(rh));
-    if(fEl) fEl.innerHTML = (feels==null?'--':(feels+' <span class="unit">°C</span>'));
-    if(fText) fText.textContent = feels==null ? 'Feels like: --' : ('Feels like: '+feels+' °C');
-  }
-
-  // Open-Meteo fetch for apparent_temperature
   const feelsOnlineEl = $('#feelsOnline');
   const zipFallback = $('#zipFallback');
   const zipInput = $('#zipInput');
@@ -651,18 +617,15 @@ footer b{color:#8fa4bd}
 
   async function fetchOpenMeteoFor(lat, lon){
     try{
-      // request hourly apparent_temperature + current_weather
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=apparent_temperature,relativehumidity_2m,windspeed_10m&current_weather=true&timezone=auto`;
       const resp = await fetch(url);
       if(!resp.ok) throw new Error('Open-Meteo error');
       const data = await resp.json();
-      // find index for current hour using current_weather.time
       const currentTime = data.current_weather && data.current_weather.time;
       let idx = -1;
       if(currentTime && data.hourly && data.hourly.time){
         idx = data.hourly.time.indexOf(currentTime);
         if(idx === -1){
-          // fallback: use nearest
           const now = new Date();
           const tStrings = data.hourly.time;
           let best = 0; let bestDiff = Infinity;
@@ -676,11 +639,11 @@ footer b{color:#8fa4bd}
       }
       const apparent = (idx>=0 && data.hourly && data.hourly.apparent_temperature) ? data.hourly.apparent_temperature[idx] : null;
       if(feelsOnlineEl) feelsOnlineEl.innerHTML = apparent==null ? '-- <span class="unit">°C</span>' : (Math.round(apparent*10)/10 + ' <span class="unit">°C</span>');
-      // also update some weather fields if present
       if(data.current_weather){
         const cond = $('#condition');
         if(cond) cond.textContent = `Temp ${data.current_weather.temperature}°C • Wind ${data.current_weather.windspeed}km/h`;
         const windEl = $('#wind'); if(windEl) windEl.innerHTML = (data.current_weather.windspeed+' <span class="unit">km/h</span>');
+        const pressureEl = $('#pressure'); if(pressureEl) pressureEl.innerHTML = (data.current_weather.pressure ? data.current_weather.pressure + ' <span class="unit">hPa</span>' : '-- <span class="unit">hPa</span>');
       }
       zipMessage && (zipMessage.style.display='none');
       return true;
@@ -691,7 +654,6 @@ footer b{color:#8fa4bd}
     }
   }
 
-  // Try browser geolocation first
   function showZipFallback(){
     if(zipFallback) zipFallback.style.display = 'flex';
     if(zipMessage){ zipMessage.style.display='block'; zipMessage.textContent='Location denied — enter ZIP or coordinates.' }
@@ -700,7 +662,6 @@ footer b{color:#8fa4bd}
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(async (pos)=>{
       const lat = pos.coords.latitude; const lon = pos.coords.longitude;
-      // hide fallback
       if(zipFallback) zipFallback.style.display = 'none';
       if($('#location')) $('#location').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
       await fetchOpenMeteoFor(lat, lon);
@@ -712,7 +673,6 @@ footer b{color:#8fa4bd}
     showZipFallback();
   }
 
-  // ZIP submit -> use Open-Meteo geocoding
   zipSubmit && zipSubmit.addEventListener('click', async ()=>{
     const q = (zipInput && zipInput.value || '').trim();
     if(!q){ zipMessage && (zipMessage.style.display='block') && (zipMessage.textContent='Please enter a ZIP/postal code.'); return; }
@@ -748,31 +708,16 @@ footer b{color:#8fa4bd}
     fetchOpenMeteoFor(lat, lon);
   });
 
-  // allow pressing Enter inside zipInput
   zipInput && zipInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') zipSubmit && zipSubmit.click(); });
 
-  // If geolocation denied the zipFallback is shown — wire up initial visibility
-  // (already handled in geolocation callbacks)
-
-  // Expose a convenience function to trigger refresh
   const refreshButton = $('#refreshButton');
   refreshButton && refreshButton.addEventListener('click', ()=>{
-    // Try to re-run geolocation/lookup
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition((pos)=>{ fetchOpenMeteoFor(pos.coords.latitude, pos.coords.longitude); }, ()=>{ showZipFallback(); });
     }else{ showZipFallback(); }
   });
 
-  // Accessibility: allow toggling 24h via double-click on clock label
   clockFormatCheckbox && clockFormatCheckbox.addEventListener('change', updateClock);
-
-  // Initialize: if geolocation fails quickly, show fallback after short delay
-  setTimeout(()=>{
-    if((!zipFallback) || zipFallback.style.display !== 'flex'){
-      // nothing
-    }
-  },9000);
-
 })();
 </script>
 
