@@ -82,6 +82,22 @@ body::before{
 @keyframes load{from{transform:translateX(-120%)}to{transform:translateX(330%)} }
 @keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 80px rgba(67,224,209,.22)}}
 
+/* Rotating & Pulsing Logo Animation */
+@keyframes logoSpinPulse {
+  0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 4px rgba(85,183,255,0.3)); }
+  50% { transform: scale(1.08) rotate(180deg); filter: drop-shadow(0 0 12px rgba(67,224,209,0.7)); }
+  100% { transform: scale(1) rotate(360deg); filter: drop-shadow(0 0 4px rgba(85,183,255,0.3)); }
+}
+
+.rotating-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid rgba(85,183,255,0.4);
+  animation: logoSpinPulse 10s linear infinite;
+}
+
 .topbar{
   position:sticky;top:0;z-index:900;
   display:flex;align-items:center;justify-content:space-between;
@@ -91,13 +107,6 @@ body::before{
   border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
-.brand-mark{
-  width:42px;height:42px;border-radius:14px;
-  display:grid;place-items:center;
-  background:linear-gradient(135deg,rgba(85,183,255,.2),rgba(67,224,209,.13));
-  border:1px solid rgba(85,183,255,.24);
-  font-size:22px;
-}
 .brand strong{display:block;font-size:15px;letter-spacing:.02em}
 .brand small{display:block;color:var(--muted);margin-top:2px}
 .menu-btn{
@@ -300,7 +309,8 @@ footer b{color:#8fa4bd}
 
 <header class="topbar">
   <a class="brand" href="#">
-    <div class="brand-mark">🌤️</div>
+    <!-- Rotating & Pulsing Team Aqua Logo -->
+    <img src="FullLogo.jpg" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">
     <div>
       <strong>TEAM AQUA</strong>
       <small>Smart Weather Station</small>
@@ -331,7 +341,7 @@ footer b{color:#8fa4bd}
     <button data-scroll="privacy-policy">🔒 Privacy & Policy</button>
   </div>
   <div class="drawer-note">
-    Team Aqua combines some ESP32 sensor data with online weather information.
+    Team Aqua combines ESP32 sensor data with online weather information.
   </div>
 </aside>
 
@@ -344,7 +354,7 @@ footer b{color:#8fa4bd}
     <div class="dev-btn-grid">
       <button class="dev-btn" data-action="refresh">Refresh</button>
       <button class="dev-btn" data-action="music">Music</button>
-      <button class="dev-btn" data-action="status">Status</button>
+      <button class="dev-btn" data-action="offline">Mark Offline</button>
       <button class="dev-btn" data-action="reset">Reset</button>
     </div>
     <div class="dev-status">
@@ -394,7 +404,7 @@ footer b{color:#8fa4bd}
       <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>
       <div class="label">Temperature</div>
       <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>
-      <div class="info">Local DHT22 sensor</div>
+      <div class="info" id="feelsLikeText">Feels like: --</div>
     </div>
 
     <div class="card">
@@ -427,7 +437,7 @@ footer b{color:#8fa4bd}
     <p class="info" id="condition">Waiting for weather data...</p>
     <div class="data-row">
       <div class="data-box"><span class="info">Wind direction</span><strong id="windDirection">--</strong></div>
-      <div class="data-box"><span class="info">Online update</span><strong id="weatherUpdated">--</strong></div>
+      <div class="data-box"><span class="info">Thermal Comfort</span><strong id="comfortIndex">--</strong></div>
       <div class="data-box"><span class="info">Sensor update</span><strong id="sensorUpdated">--</strong></div>
     </div>
   </section>
@@ -476,7 +486,7 @@ footer b{color:#8fa4bd}
     All original content, designs, code, graphics, and other materials created by Team Aqua remain the property of their respective owners.
   </p>
   <p class="info">
-    Weather information displayed on this website is obtained from <strong>Open-Meteo</strong>.
+    Weather information obtained from <strong>Open-Meteo</strong>.
   </p>
   <p class="info" style="margin-bottom:0">
     This website is created for educational and exhibition purposes.
@@ -549,11 +559,50 @@ document.querySelectorAll("[data-action]").forEach(btn => {
       $("firebaseStatusText").textContent = status.includes("Firebase") ? "Developer status: OK" : "Developer status: ACTIVE";
     }
 
+    if (action === "offline") {
+      $("temperature").innerHTML = `-- <span class="unit">°C</span>`;
+      $("humidity").innerHTML = `-- <span class="unit">%</span>`;
+      $("feelsLikeText").textContent = "Feels like: --";
+      $("comfortIndex").textContent = "--";
+      $("firebaseStatusText").textContent = "ESP32 sensor is offline (Manual override)";
+      $("firebaseStatus").classList.remove("ok");
+      $("firebaseStatus").classList.add("bad");
+      $("heroSensor").textContent = "Offline";
+      $("devicePill").textContent = "OFFLINE";
+      $("deviceStatus").textContent = "Sensor module is powered off or disconnected.";
+    }
+
     if (action === "reset") {
       location.reload();
     }
   });
 });
+
+// Calculates "Feels Like" and Thermal Comfort Index dynamically
+function updateFeelsLikeAndComfort(temp, hum) {
+  let feels = temp;
+  if (temp >= 25 && hum > 30) {
+    feels = temp + 0.33 * (hum / 100) * (temp - 10); // simplified apparent temperature factor
+  }
+
+  let label = "Comfortable 🍃";
+  if (feels >= 35) label = "Hot & Humid ☀️";
+  else if (feels >= 30) label = "Hot ☀️";
+  else if (feels >= 24) label = "Warm 🌤️";
+  else if (feels >= 18) label = "Pleasant 🍃";
+  else if (feels >= 12) label = "Cool 🧥";
+  else if (feels >= 5) label = "Chilly ❄️";
+  else label = "Freezing 🧊";
+
+  $("feelsLikeText").textContent = `Feels like: ${feels.toFixed(1)}°C (${label})`;
+
+  let comfort = "Optimal 🟢";
+  if (hum > 70) comfort = "Sticky / Humid 💧";
+  else if (hum < 30) comfort = "Dry 🌵";
+  else if (temp > 32) comfort = "Heat Stress 🔥";
+  else if (temp < 12) comfort = "Cold Draft 💨";
+  $("comfortIndex").textContent = comfort;
+}
 
 async function fetchSensorData() {
   try {
@@ -579,8 +628,13 @@ async function fetchSensorData() {
       $("humidity").innerHTML = `${hum.toFixed(0)} <span class="unit">%</span>`;
     }
 
+    if (typeof temp === "number" && typeof hum === "number") {
+      updateFeelsLikeAndComfort(temp, hum);
+    }
+
     $("firebaseStatusText").textContent = "Weather data connected (30s sync)";
     $("firebaseStatus").classList.add("ok");
+    $("firebaseStatus").classList.remove("bad");
     $("heroSensor").textContent = "Online";
     $("devicePill").textContent = "ONLINE";
     $("deviceStatus").textContent = "Sensor readings refreshed from ESP32.";
