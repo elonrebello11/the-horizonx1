@@ -555,7 +555,6 @@ document.querySelectorAll("[data-action]").forEach(btn => {
   });
 });
 
-// Function to fetch data from Firebase every 30 seconds
 async function fetchSensorData() {
   try {
     const snapshot = await get(weatherRef);
@@ -714,12 +713,10 @@ volumeControl.addEventListener("input",()=>{
 window.addEventListener("load",()=>{
   detectLocation();
   updateMusicState();
-  // Initial fetch for sensor data
   fetchSensorData();
   setTimeout(()=>$("splash").classList.add("hide"),1800);
 });
 
-// Refresh sensor data every 30 seconds (30000 ms)
 setInterval(fetchSensorData, 30000);
 
 setInterval(()=>{
