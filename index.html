@@ -340,7 +340,6 @@ footer b{color:#8fa4bd}
 
 <header class="topbar">
   <a class="brand" href="#">
-    <!-- Rotating & Pulsing Team Aqua Logo - set to FullLogo.jpg as requested -->
     <img src="FullLogo.jpg" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">
     <div>
       <strong>TEAM AQUA</strong>
@@ -356,7 +355,6 @@ footer b{color:#8fa4bd}
       </label>
     </div>
 
-    <!-- Clock & format toggle -->
     <div style="display:flex;align-items:center;gap:8px">
       <div class="top-clock" id="topClock" aria-live="polite">--:--:--</div>
       <div class="clock-toggle" title="Toggle 24/12 hour format">
@@ -411,7 +409,6 @@ footer b{color:#8fa4bd}
 <main id="dashboard">
   <section class="hero">
     <div class="hero-card">
-      <!-- Larger popping logo near the hero card as requested -->
       <img src="FullLogo.jpg" alt="Hero Logo" class="hero-logo" id="heroLogo">
 
       <div class="eyebrow">TEAM AQUA • LIVE SYSTEM</div>
@@ -552,13 +549,13 @@ footer b{color:#8fa4bd}
   const clockFormatCheckbox = $('#clockFormat24');
   const splash = document.getElementById('splash');
 
-  function pad(n){return n.toString().padStart(2,'0')}
+  function pad(n){ return n.toString().padStart(2,'0'); }
   function updateClock(){
     const now = new Date();
-    const use24 = clockFormatCheckbox.checked;
+    const use24 = !!(clockFormatCheckbox && clockFormatCheckbox.checked);
     let hours = now.getHours();
     let suffix = '';
-    if(!use24){ suffix = hours >= 12 ? ' PM' : ' AM'; hours = hours % 12 || 12 }
+    if(!use24){ suffix = hours >= 12 ? ' PM' : ' AM'; hours = hours % 12 || 12; }
     const timeStr = `${pad(hours)}:${pad(now.getMinutes())}:${pad(now.getSeconds())}${use24 ? '' : suffix}`;
     if(topClock) topClock.textContent = timeStr;
   }
@@ -569,72 +566,139 @@ footer b{color:#8fa4bd}
   const drawer = $('#drawer');
   const drawerOverlay = $('#drawerOverlay');
   const closeDrawer = $('#closeDrawer');
-  menuButton && menuButton.addEventListener('click', ()=>{ drawer && drawer.classList.add('open'); drawerOverlay && drawerOverlay.classList.add('open'); });
-  closeDrawer && closeDrawer.addEventListener('click', ()=>{ drawer && drawer.classList.remove('open'); drawerOverlay && drawerOverlay.classList.remove('open'); });
-  drawerOverlay && drawerOverlay.addEventListener('click', ()=>{ drawer && drawer.classList.remove('open'); drawerOverlay && drawerOverlay.classList.remove('open'); });
+  menuButton && menuButton.addEventListener('click', ()=>{
+    drawer && drawer.classList.add('open');
+    drawerOverlay && drawerOverlay.classList.add('open');
+  });
+  closeDrawer && closeDrawer.addEventListener('click', ()=>{
+    drawer && drawer.classList.remove('open');
+    drawerOverlay && drawerOverlay.classList.remove('open');
+  });
+  drawerOverlay && drawerOverlay.addEventListener('click', ()=>{
+    drawer && drawer.classList.remove('open');
+    drawerOverlay && drawerOverlay.classList.remove('open');
+  });
+
+  document.querySelectorAll('[data-scroll]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const targetId = button.getAttribute('data-scroll');
+      const section = document.getElementById(targetId);
+      if(section){
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        drawer && drawer.classList.remove('open');
+        drawerOverlay && drawerOverlay.classList.remove('open');
+      }
+    });
+  });
 
   const autoMusicToggle = $('#autoMusicToggle');
   const bassAudio = $('#bassPulseAudio');
   const volume = $('#volume');
   const musicState = $('#musicState');
+
   function applyMusic(){
     if(!bassAudio) return;
     bassAudio.volume = volume ? Number(volume.value) : 0.35;
-    if(autoMusicToggle && autoMusicToggle.checked){ bassAudio.play().catch(()=>{}); musicState && (musicState.textContent='AUTO ON') }
-    else{ bassAudio.pause(); musicState && (musicState.textContent='AUTO OFF') }
+    if(autoMusicToggle && autoMusicToggle.checked){
+      bassAudio.play().catch(()=>{});
+      if(musicState) musicState.textContent = 'AUTO ON';
+    } else {
+      bassAudio.pause();
+      if(musicState) musicState.textContent = 'AUTO OFF';
+    }
   }
   autoMusicToggle && autoMusicToggle.addEventListener('change', applyMusic);
   volume && volume.addEventListener('input', ()=>{ if(bassAudio) bassAudio.volume = Number(volume.value); });
   applyMusic();
 
-  window.addEventListener('load', ()=>{ setTimeout(()=>{ splash && splash.classList.add('hide') },700); });
-
-  async function fetchOpenMeteoFor(lat, lon){
-    try{
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=relativehumidity_2m,windspeed_10m&current_weather=true`;
-      const resp = await fetch(url);
-      if(!resp.ok) throw new Error('Open-Meteo error');
-      const data = await resp.json();
-      if(data.current_weather){
-        const cond = $('#condition');
-        if(cond) cond.textContent = `Temp ${data.current_weather.temperature}°C • Wind ${data.current_weather.windspeed}km/h`;
-        const windEl = $('#wind'); if(windEl) windEl.innerHTML = (data.current_weather.windspeed+' <span class="unit">km/h</span>');
-        const pressureEl = $('#pressure'); if(pressureEl) pressureEl.innerHTML = (data.current_weather.pressure ? data.current_weather.pressure + ' <span class="unit">hPa</span>' : '-- <span class="unit">hPa</span>');
-        const directionEl = $('#windDirection'); if(directionEl) directionEl.textContent = data.current_weather.winddirection != null ? `${data.current_weather.winddirection}°` : '--';
-        const comfortEl = $('#comfortIndex'); if(comfortEl) comfortEl.textContent = 'Good';
-        const sensorEl = $('#sensorUpdated'); if(sensorEl) sensorEl.textContent = data.current_weather.time || '--';
-      }
-      return true;
-    }catch(err){
-      console.error('open-meteo',err);
-      return false;
-    }
-  }
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{ splash && splash.classList.add('hide'); },700);
+  });
 
   function setLocationUnavailable(){
     const loc = $('#location');
     if(loc) loc.textContent = 'Location unavailable';
   }
 
+  async function fetchOpenMeteoFor(lat, lon){
+    try{
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=relativehumidity_2m,windspeed_10m,surface_pressure&current_weather=true&timezone=auto`;
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('Open-Meteo error');
+      const data = await resp.json();
+
+      if(data.current_weather){
+        const cond = $('#condition');
+        if(cond) cond.textContent = `Temp ${data.current_weather.temperature}°C • Wind ${data.current_weather.windspeed}km/h`;
+
+        const windEl = $('#wind');
+        if(windEl) windEl.innerHTML = `${data.current_weather.windspeed} <span class="unit">km/h</span>`;
+
+        let pressureValue = null;
+        if(data.hourly && Array.isArray(data.hourly.surface_pressure) && Array.isArray(data.hourly.time)){
+          const timeIndex = data.hourly.time.indexOf(data.current_weather.time);
+          if(timeIndex !== -1) {
+            pressureValue = data.hourly.surface_pressure[timeIndex];
+          } else if(data.hourly.surface_pressure.length){
+            pressureValue = data.hourly.surface_pressure[data.hourly.surface_pressure.length - 1];
+          }
+        }
+
+        const pressureEl = $('#pressure');
+        if(pressureEl){
+          const pressureText = pressureValue != null ? `${Math.round(Number(pressureValue))} <span class="unit">hPa</span>` : '-- <span class="unit">hPa</span>';
+          pressureEl.innerHTML = pressureText;
+        }
+
+        const directionEl = $('#windDirection');
+        if(directionEl) directionEl.textContent = data.current_weather.winddirection != null ? `${data.current_weather.winddirection}°` : '--';
+
+        const comfortEl = $('#comfortIndex');
+        if(comfortEl) comfortEl.textContent = 'Good';
+
+        const sensorEl = $('#sensorUpdated');
+        if(sensorEl) sensorEl.textContent = data.current_weather.time || '--';
+      }
+
+      return true;
+    } catch(err){
+      console.error('open-meteo', err);
+      return false;
+    }
+  }
+
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(async (pos)=>{
-      const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
       const loc = $('#location');
       if(loc) loc.textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
       await fetchOpenMeteoFor(lat, lon);
-    }, (err)=>{
+    }, (err) => {
       console.warn('geo err', err);
       setLocationUnavailable();
-    }, {timeout:8000});
-  }else{
+    }, { timeout: 8000 });
+  } else {
     setLocationUnavailable();
   }
 
   const refreshButton = $('#refreshButton');
-  refreshButton && refreshButton.addEventListener('click', ()=>{
+  refreshButton && refreshButton.addEventListener('click', () => {
     if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition((pos)=>{ fetchOpenMeteoFor(pos.coords.latitude, pos.coords.longitude); }, ()=>{ setLocationUnavailable(); });
-    }else{ setLocationUnavailable(); }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        fetchOpenMeteoFor(pos.coords.latitude, pos.coords.longitude);
+      }, () => {
+        setLocationUnavailable();
+      });
+    } else {
+      setLocationUnavailable();
+    }
+  });
+
+  const heroMusicButton = $('#heroMusicButton');
+  heroMusicButton && heroMusicButton.addEventListener('click', () => {
+    if(autoMusicToggle) autoMusicToggle.checked = true;
+    applyMusic();
   });
 
   clockFormatCheckbox && clockFormatCheckbox.addEventListener('change', updateClock);
