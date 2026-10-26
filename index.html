@@ -3,67 +3,475 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#07111f">
+<meta name="theme-color" content="#030712">
 <meta name="description" content="Team Aqua Smart Weather Station">
 <title>Team Aqua • Smart Weather Station</title>
-<style>:root{  --bg:#050b14;  --panel:rgba(13,25,43,.72);  --panel-strong:#0d1a2d;  --line:rgba(148,163,184,.16);  --text:#f8fbff;  --muted:#8fa4bd;  --blue:#55b7ff;  --cyan:#43e0d1;  --yellow:#ffd166;  --purple:#a78bfa;  --green:#5ee7a0;  --danger:#ff7185;  --shadow:0 24px 70px rgba(0,0,0,.28);  --radius:24px;}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{  margin:0;  min-height:100vh;  color:var(--text);  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;  background:    radial-gradient(circle at 10% 10%,rgba(55,170,255,.12),transparent 30%),    radial-gradient(circle at 90% 20%,rgba(67,224,209,.09),transparent 28%),    linear-gradient(180deg,#07111f 0%,#050b14 55%,#040810 100%);  overflow-x:hidden; transition: background 1s ease;}
-button,input,select{font:inherit}button{cursor:pointer}
+<style>
+:root {
+  --bg: #030712;
+  --panel: rgba(13, 27, 48, 0.75);
+  --panel-strong: rgba(18, 38, 66, 0.9);
+  --line: rgba(148, 163, 184, 0.18);
+  --text: #f8fbff;
+  --muted: #94a3b8;
+  --blue: #38bdf8;
+  --cyan: #2dd4bf;
+  --yellow: #fbbf24;
+  --purple: #a855f7;
+  --green: #4ade80;
+  --danger: #fb7185;
+  --shadow: 0 30px 90px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --radius: 28px;
+}
 
-/* Weather Background Canvas */
-#weatherCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.6; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
 
-/* Glowing Sun Animation */
-.sun-glow-container { position: fixed; right: -100px; top: -100px; width: 400px; height: 400px; pointer-events: none; z-index: 0; opacity: 0; transition: opacity 1s ease; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.15), transparent 35%),
+              radial-gradient(circle at 85% 85%, rgba(45, 212, 191, 0.12), transparent 35%),
+              linear-gradient(135deg, #030712 0%, #080e1a 50%, #020408 100%);
+  overflow-x: hidden;
+  transition: background 1.2s ease;
+}
+
+button, input, select { font: inherit; cursor: pointer; }
+
+/* Futuristic Grid Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, black 60%, transparent 95%);
+}
+
+/* Weather Canvas Particles */
+#weatherCanvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.65;
+}
+
+/* Glowing Sun Atmospheric Orb */
+.sun-glow-container {
+  position: fixed;
+  right: -120px;
+  top: -120px;
+  width: 450px;
+  height: 450px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
 .sun-glow-container.active { opacity: 1; }
-.sun-orb-glow { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(255,209,102,0.35) 0%, rgba(255,140,0,0.1) 50%, transparent 70%); animation: sunPulse 6s ease-in-out infinite; }
-@keyframes sunPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 30px rgba(255,209,102,0.4)); } 50% { transform: scale(1.12); filter: drop-shadow(0 0 60px rgba(255,209,102,0.7)); } }
+.sun-orb-glow {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251,191,36,0.3) 0%, rgba(249,115,22,0.1) 50%, transparent 75%);
+  animation: sunPulse 7s ease-in-out infinite;
+}
+@keyframes sunPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 40px rgba(251,191,36,0.4)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 70px rgba(251,191,36,0.7)); }
+}
 
-body::before{  content:"";  position:fixed;  inset:0;  pointer-events:none;  z-index: 1;  background-image:    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);  background-size:42px 42px;  mask-image:linear-gradient(to bottom,black,transparent 80%);}
-#splash{  position:fixed;  inset:0;  z-index:2000;  display:grid;  place-items:center;  background:#050b14;  transition:opacity .7s ease,visibility .7s ease;}#splash.hide{opacity:0;visibility:hidden}.splash-inner{text-align:center}.splash-orb{  width:92px;height:92px;margin:auto;  display:grid;place-items:center;  border:1px solid rgba(85,183,255,.35);  border-radius:50%;  background:radial-gradient(circle,rgba(85,183,255,.24),transparent 65%);  box-shadow:0 0 60px rgba(85,183,255,.18);  font-size:42px;  animation:pulse 1.8s ease-in-out infinite;}.splash-inner h1{margin:22px 0 8px;font-size:28px}.splash-inner p{margin:0;color:var(--muted)}.loader{width:190px;height:4px;margin:22px auto 0;background:#15263b;border-radius:99px;overflow:hidden}.loader span{display:block;width:45%;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));animation:load 1.5s infinite ease-in-out}@keyframes load{from{transform:translateX(-120%)}to{transform:translateX(330%)} }@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 80px rgba(67,224,209,.22)}}
-/* Rotating & Pulsing Logo Animation */@keyframes logoSpinPulse {  0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 4px rgba(85,183,255,0.3)); }  50% { transform: scale(1.08) rotate(180deg); filter: drop-shadow(0 0 12px rgba(67,224,209,0.7)); }  100% { transform: scale(1) rotate(360deg); filter: drop-shadow(0 0 4px rgba(85,183,255,0.3)); }}
-.rotating-logo {  width: 44px;  height: 44px;  border-radius: 14px;  object-fit: cover;  border: 1px solid rgba(85,183,255,0.4);  animation: logoSpinPulse 10s linear infinite;}
-/* Hero logo pop animation */@keyframes popInOut {  0% { transform: scale(0.9); opacity: 0; }  10% { transform: scale(1.08); opacity: 1; }  50% { transform: scale(0.95); opacity: 0.85; }  90% { transform: scale(1.02); opacity: 1; }  100% { transform: scale(0.9); opacity: 0; }}.hero-logo{  width:120px;  height:auto;  display:block;  margin:0 0 18px 0;  animation: popInOut 4.5s ease-in-out infinite;  transform-origin:center center;}
-.top-clock{  color:var(--muted);  font-weight:700;  min-width:96px;  text-align:right;  font-size:13px;}
-.clock-toggle{display:flex;align-items:center;gap:8px;margin-left:12px}.clock-toggle input{width:14px;height:14px}
-.topbar{  position:sticky;top:0;z-index:900;  display:flex;align-items:center;justify-content:space-between;  padding:14px clamp(16px,4vw,48px);  background:rgba(5,11,20,.72);  backdrop-filter:blur(18px);  border-bottom:1px solid var(--line);}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}.brand strong{display:block;font-size:15px;letter-spacing:.02em}.brand small{display:block;color:var(--muted);margin-top:2px}.menu-btn{  width:46px;height:46px;border:1px solid var(--line);  border-radius:15px;background:rgba(255,255,255,.04);color:white;  display:grid;place-items:center;transition:.25s ease;}.menu-btn:hover{transform:translateY(-2px);border-color:rgba(85,183,255,.45);background:rgba(85,183,255,.08)}.menu-lines{width:20px}.menu-lines span{display:block;height:2px;margin:4px 0;border-radius:5px;background:#fff}
-.drawer{  position:fixed;top:0;right:0;z-index:1200;  width:min(360px,92vw);height:100vh;  padding:22px;  background:rgba(7,17,31,.96);  backdrop-filter:blur(22px);  border-left:1px solid var(--line);  transform:translateX(105%);  transition:transform .35s cubic-bezier(.2,.8,.2,1);  box-shadow:-30px 0 80px rgba(0,0,0,.3);}.drawer.open{transform:translateX(0)}.drawer-head{display:flex;justify-content:space-between;align-items:center}.drawer h2{margin:0}.close-btn{border:0;background:transparent;color:#9fb2c8;font-size:28px}.drawer-nav{display:grid;gap:10px;margin-top:28px}.drawer-nav button{  text-align:left;border:1px solid var(--line);border-radius:15px;  background:rgba(255,255,255,.035);color:#eaf4ff;padding:14px 16px;  transition:.2s ease;}.drawer-nav button:hover{border-color:rgba(85,183,255,.4);transform:translateX(3px)}.drawer-note{margin-top:28px;padding:15px;border-radius:16px;background:rgba(67,224,209,.06);border:1px solid rgba(67,224,209,.12);color:var(--muted);font-size:13px;line-height:1.6}.drawer-overlay{  position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.42);  opacity:0;visibility:hidden;transition:.3s ease;}.drawer-overlay.open{opacity:1;visibility:visible}
-main{position:relative;z-index:2;width:min(1180px,calc(100% - 28px));margin:auto;padding:34px 0 70px}.hero{  display:grid;grid-template-columns:1.35fr .65fr;gap:20px;  align-items:stretch;}.hero-card,.mini-panel,.card,.section{  background:linear-gradient(145deg,rgba(16,31,52,.82),rgba(9,19,33,.76));  border:1px solid var(--line);  box-shadow:var(--shadow);  backdrop-filter:blur(14px);}.hero-card{  position:relative;overflow:hidden;  padding:clamp(24px,5vw,52px);  border-radius:32px;}.hero-card::after{  content:"";position:absolute;width:260px;height:260px;right:-90px;top:-110px;  background:radial-gradient(circle,rgba(85,183,255,.2),transparent 68%);}.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.hero h1{font-size:clamp(38px,7vw,72px);line-height:.98;margin:14px 0 18px;max-width:780px}.hero h1 span{background:linear-gradient(90deg,#fff,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}.hero p{max-width:680px;color:var(--muted);line-height:1.75;font-size:16px}.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}.primary,.secondary{  border:1px solid transparent;border-radius:14px;padding:12px 17px;color:#fff;  transition:.25s ease;}.primary{background:linear-gradient(135deg,#1976d2,#20a9a0)}.secondary{background:rgba(255,255,255,.04);border-color:var(--line)}.primary:hover,.secondary:hover{transform:translateY(-2px)}.mini-stack{display:grid;gap:20px}.mini-panel{border-radius:24px;padding:22px}.mini-panel h3{margin:0 0 8px}.mini-value{font-size:32px;font-weight:800}.mini-sub{color:var(--muted);font-size:13px}.status{  display:flex;align-items:center;gap:10px;  margin:22px 0;padding:13px 15px;border:1px solid var(--line);  border-radius:16px;background:rgba(255,255,255,.035);color:#d9e7f5;}.dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);box-shadow:0 0 16px currentColor}.status.ok .dot{background:var(--green)}.status.bad .dot{background:var(--danger)}
-.location{color:var(--muted);margin:0 0 18px;padding-left:3px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card{min-width:0;border-radius:22px;padding:22px;transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease}.card:hover{transform:translateY(-5px);border-color:rgba(85,183,255,.3);box-shadow:0 25px 70px rgba(0,0,0,.38)}.card-top{display:flex;justify-content:space-between;align-items:center;gap:10px}.icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.05);font-size:23px}.badge{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.label{margin-top:20px;color:#c6d5e5;font-size:14px}.value{font-size:clamp(30px,4vw,42px);font-weight:850;margin:7px 0 5px;overflow-wrap:anywhere}.unit{font-size:15px;color:var(--muted);font-weight:600}.temperature{color:var(--yellow)} .humidity{color:var(--blue)} .wind{color:var(--purple)} .pressure{color:var(--green)}.info{color:var(--muted);line-height:1.7;font-size:13px}
-.section{border-radius:24px;padding:24px;margin-top:18px}.section-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:12px}.section h2{margin:0;font-size:20px}.pill{padding:7px 10px;border-radius:999px;background:rgba(85,183,255,.08);color:#9bd5ff;font-size:11px;border:1px solid rgba(85,183,255,.14)}.data-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}.data-box{padding:15px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.025)}.data-box strong{display:block;margin-top:4px}
-.zip-fallback{display:flex;gap:8px;align-items:center;margin-top:8px}.zip-fallback input{padding:8px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--text);min-width:140px}.zip-fallback button{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text)}
-.music-layout{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}.track-title{font-size:18px;font-weight:750}.track-meta{color:var(--muted);font-size:13px;margin-top:5px}.music-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.control-btn{width:42px;height:42px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.04);color:white}.control-btn:hover{border-color:rgba(85,183,255,.4)}.track-select{min-width:220px;border:1px solid var(--line);border-radius:13px;background:#0a1627;color:white;padding:11px 12px;outline:none}.volume{width:110px;accent-color:var(--cyan)}
-footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 15px;font-size:12px}footer b{color:#8fa4bd}
-.auto-music-bar{display:flex;align-items:center;gap:9px;margin-left:auto;margin-right:10px}.auto-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#9fb2c8}.auto-toggle{position:relative;width:48px;height:28px}.auto-toggle input{opacity:0;width:0;height:0}.auto-slider{position:absolute;inset:0;border-radius:99px;background:#26384d;border:1px solid var(--line);transition:.25s}.auto-slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#9fb2c8;transition:.25s}.auto-toggle input:checked+.auto-slider{background:linear-gradient(90deg,#1976d2,#20a9a0)}.auto-toggle input:checked+.auto-slider:before{transform:translateX(20px);background:white}
-@media(max-width:900px){  .hero{grid-template-columns:1fr}  .grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){  main{width:min(100% - 20px,1180px);padding-top:20px}  .topbar{padding:11px 13px}  .brand small{display:none}  .hero-card{padding:25px;border-radius:25px}  .hero h1{font-size:43px}  .grid{grid-template-columns:1fr 1fr;gap:10px}  .card{padding:16px;border-radius:18px}  .value{font-size:31px}  .data-row{grid-template-columns:1fr}  .music-controls{justify-content:flex-start}  .track-select{min-width:0;width:100%}  .volume{width:100%}}@media(max-width:390px){  .grid{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:reduce){  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}</style></head>
+/* Splash Screen */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  background: #030712;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+}
+#splash.hide { opacity: 0; visibility: hidden; }
+.splash-inner { text-align: center; }
+.splash-orb {
+  width: 100px; height: 100px; margin: auto;
+  display: grid; place-items: center;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,189,248,0.25), transparent 70%);
+  box-shadow: 0 0 70px rgba(56, 189, 248, 0.25);
+  font-size: 44px;
+  animation: pulseOrb 2s ease-in-out infinite;
+}
+@keyframes pulseOrb {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(56,189,248,0.2); }
+  50% { transform: scale(1.08); box-shadow: 0 0 90px rgba(45,212,191,0.4); }
+}
+.splash-inner h1 { margin: 24px 0 8px; font-size: 32px; letter-spacing: -0.03em; }
+.splash-inner p { margin: 0; color: var(--muted); }
+.loader { width: 200px; height: 4px; margin: 24px auto 0; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+.loader span { display: block; width: 45%; height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); animation: loadAnim 1.4s infinite ease-in-out; }
+@keyframes loadAnim { from { transform: translateX(-130%); } to { transform: translateX(350%); } }
+
+/* Topbar */
+.topbar {
+  position: sticky; top: 0; z-index: 900;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px clamp(20px, 4vw, 52px);
+  background: rgba(3, 7, 18, 0.82);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--text); }
+.brand strong { display: block; font-size: 16px; letter-spacing: 0.03em; }
+.brand small { display: block; color: var(--muted); margin-top: 2px; font-size: 12px; }
+
+/* Logo Animations */
+@keyframes logoSpinPulse {
+  0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 6px rgba(56,189,248,0.4)); }
+  50% { transform: scale(1.1) rotate(180deg); filter: drop-shadow(0 0 16px rgba(45,212,191,0.8)); }
+  100% { transform: scale(1) rotate(360deg); filter: drop-shadow(0 0 6px rgba(56,189,248,0.4)); }
+}
+.rotating-logo { width: 46px; height: 46px; border-radius: 14px; object-fit: cover; border: 1.5px solid rgba(56,189,248,0.5); animation: logoSpinPulse 12s linear infinite; }
+
+@keyframes popInOut {
+  0% { transform: scale(0.92); opacity: 0.8; }
+  50% { transform: scale(1.06); opacity: 1; filter: drop-shadow(0 0 20px rgba(45,212,191,0.6)); }
+  100% { transform: scale(0.92); opacity: 0.8; }
+}
+.hero-logo { width: 130px; height: auto; display: block; margin: 0 0 20px 0; animation: popInOut 5s ease-in-out infinite; transform-origin: center center; }
+
+.top-clock { color: var(--muted); font-weight: 700; min-width: 104px; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; }
+.clock-toggle { display: flex; align-items: center; gap: 8px; margin-left: 12px; }
+.clock-toggle input { width: 15px; height: 15px; accent-color: var(--blue); }
+
+.menu-btn {
+  width: 48px; height: 48px; border: 1px solid var(--line);
+  border-radius: 16px; background: rgba(255, 255, 255, 0.04); color: white;
+  display: grid; place-items: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.menu-btn:hover { transform: translateY(-3px); border-color: rgba(56,189,248,0.6); background: rgba(56,189,248,0.12); box-shadow: 0 10px 25px rgba(56,189,248,0.2); }
+.menu-lines { width: 20px; }
+.menu-lines span { display: block; height: 2px; margin: 4px 0; border-radius: 4px; background: #fff; }
+
+/* Navigation Drawer */
+.drawer {
+  position: fixed; top: 0; right: 0; z-index: 1200;
+  width: min(380px, 92vw); height: 100vh;
+  padding: 26px; background: rgba(3, 7, 18, 0.98);
+  backdrop-filter: blur(30px); border-left: 1px solid var(--line);
+  transform: translateX(105%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -40px 0 100px rgba(0, 0, 0, 0.6);
+}
+.drawer.open { transform: translateX(0); }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; }
+.drawer h2 { margin: 0; font-size: 22px; }
+.close-btn { border: 0; background: transparent; color: var(--muted); font-size: 32px; transition: color 0.2s; }
+.close-btn:hover { color: #fff; }
+.drawer-nav { display: grid; gap: 12px; margin-top: 32px; }
+.drawer-nav button {
+  text-align: left; border: 1px solid var(--line); border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035); color: #f1f5f9; padding: 15px 18px;
+  transition: all 0.25s ease; font-weight: 500;
+}
+.drawer-nav button:hover { border-color: rgba(56,189,248,0.5); background: rgba(56,189,248,0.08); transform: translateX(4px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+.drawer-note { margin-top: 32px; padding: 18px; border-radius: 18px; background: rgba(45,212,191,0.06); border: 1px solid rgba(45,212,191,0.18); color: var(--muted); font-size: 13px; line-height: 1.6; }
+.drawer-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.6); opacity: 0; visibility: hidden; transition: all 0.35s ease; }
+.drawer-overlay.open { opacity: 1; visibility: visible; }
+
+/* Main Content Layout */
+main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); margin: auto; padding: 40px 0 80px; }
+
+.hero { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 24px; align-items: stretch; }
+
+.hero-card, .mini-panel, .card, .section {
+  background: linear-gradient(145deg, rgba(15, 29, 52, 0.85), rgba(7, 16, 31, 0.8));
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-card {
+  position: relative; overflow: hidden;
+  padding: clamp(28px, 5vw, 56px);
+}
+.hero-card::after {
+  content: ""; position: absolute; width: 300px; height: 300px; right: -100px; top: -120px;
+  background: radial-gradient(circle, rgba(56,189,248,0.22), transparent 70%);
+  pointer-events: none;
+}
+
+.eyebrow { color: var(--cyan); font-size: 12px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
+.hero h1 { font-size: clamp(38px, 6.5vw, 68px); line-height: 1.02; margin: 16px 0 20px; max-width: 780px; letter-spacing: -0.02em; }
+.hero h1 span { background: linear-gradient(90deg, #fff, var(--blue), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p { max-width: 680px; color: var(--muted); line-height: 1.8; font-size: 16px; }
+
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.primary, .secondary {
+  border: 1px solid transparent; border-radius: 16px; padding: 13px 20px; color: #fff;
+  font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.primary { background: linear-gradient(135deg, #0284c7, #0d9488); box-shadow: 0 10px 30px rgba(2, 132, 199, 0.35); }
+.secondary { background: rgba(255,255,255,0.04); border-color: var(--line); }
+.primary:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(2, 132, 199, 0.5); }
+.secondary:hover { transform: translateY(-3px); border-color: rgba(56,189,248,0.5); background: rgba(56,189,248,0.08); }
+
+.mini-stack { display: grid; gap: 24px; }
+.mini-panel { padding: 26px; border-radius: var(--radius); display: flex; flex-direction: column; justify-content: center; }
+.mini-value { font-size: 34px; font-weight: 800; margin-top: 6px; letter-spacing: -0.02em; }
+.mini-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+/* Status Bar */
+.status {
+  display: flex; align-items: center; gap: 12px;
+  margin: 26px 0; padding: 16px 20px; border: 1px solid var(--line);
+  border-radius: 20px; background: rgba(255,255,255,0.03); color: #e2e8f0;
+  backdrop-filter: blur(14px); font-weight: 500;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 20px currentColor; }
+.status.ok .dot { background: var(--green); box-shadow: 0 0 20px var(--green); }
+.status.bad .dot { background: var(--danger); box-shadow: 0 0 20px var(--danger); }
+
+/* Metric Cards Grid */
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.card {
+  min-width: 0; padding: 26px;
+  position: relative; overflow: hidden;
+}
+.card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(56,189,248,0.4);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 30px rgba(56,189,248,0.1);
+}
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.icon { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,255,255,0.06); font-size: 24px; border: 1px solid rgba(255,255,255,0.04); }
+.badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; background: rgba(255,255,255,0.04); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.label { margin-top: 22px; color: var(--muted); font-size: 14px; font-weight: 500; }
+.value { font-size: clamp(32px, 4vw, 46px); font-weight: 850; margin: 8px 0 6px; letter-spacing: -0.03em; }
+.unit { font-size: 16px; color: var(--muted); font-weight: 600; }
+
+.temperature { color: var(--yellow); text-shadow: 0 0 30px rgba(251,191,36,0.25); }
+.humidity { color: var(--blue); text-shadow: 0 0 30px rgba(56,189,248,0.25); }
+.wind { color: var(--purple); text-shadow: 0 0 30px rgba(168,85,247,0.25); }
+.pressure { color: var(--green); text-shadow: 0 0 30px rgba(74,222,128,0.25); }
+
+.info { color: var(--muted); line-height: 1.7; font-size: 13px; }
+
+/* Sections */
+.section { border-radius: var(--radius); padding: 30px; margin-top: 24px; }
+.section-head { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 16px; }
+.section h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.pill { padding: 8px 14px; border-radius: 999px; background: rgba(56,189,248,0.1); color: #38bdf8; font-size: 11px; font-weight: 700; border: 1px solid rgba(56,189,248,0.25); letter-spacing: 0.05em; }
+
+.data-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+.data-box { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,0.02); transition: border-color 0.3s; }
+.data-box:hover { border-color: rgba(56,189,248,0.3); }
+.data-box strong { display: block; margin-top: 6px; font-size: 16px; color: #f1f5f9; }
+
+/* Music Player Section */
+.music-layout { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
+.track-title { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
+.track-meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.music-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.volume { width: 120px; accent-color: var(--cyan); height: 6px; border-radius: 3px; }
+
+footer { position: relative; z-index: 2; text-align: center; color: #64748b; padding: 40px 20px; font-size: 13px; line-height: 1.6; }
+footer b { color: #94a3b8; }
+
+/* Auto Music Toggle Switch */
+.auto-music-bar { display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 12px; }
+.auto-label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: #94a3b8; }
+.auto-toggle { position: relative; width: 52px; height: 30px; }
+.auto-toggle input { opacity: 0; width: 0; height: 0; }
+.auto-slider { position: absolute; inset: 0; border-radius: 99px; background: #1e293b; border: 1px solid var(--line); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.auto-slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: #94a3b8; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+.auto-toggle input:checked + .auto-slider { background: linear-gradient(90deg, #0284c7, #0d9488); border-color: rgba(56,189,248,0.4); }
+.auto-toggle input:checked + .auto-slider:before { transform: translateX(22px); background: white; }
+
+/* Responsive Media Queries */
+@media(max-width: 1024px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  .hero { grid-template-columns: 1fr; }
+}
+@media(max-width: 640px) {
+  main { width: min(100% - 20px, 1220px); padding-top: 20px; }
+  .topbar { padding: 14px 16px; }
+  .brand small { display: none; }
+  .hero-card { padding: 24px; border-radius: 22px; }
+  .hero h1 { font-size: 36px; }
+  .grid { grid-template-columns: 1fr; gap: 14px; }
+  .card { padding: 20px; border-radius: 20px; }
+  .value { font-size: 34px; }
+  .data-row { grid-template-columns: 1fr; }
+  .music-layout { grid-template-columns: 1fr; }
+  .music-controls { justify-content: flex-start; }
+  .volume { width: 100%; }
+}
+</style>
+</head>
 <body>
-<!-- Canvas for Rain / Snow effects -->
+
 <canvas id="weatherCanvas"></canvas>
-<!-- Glowing Sun Background Container -->
 <div class="sun-glow-container" id="sunGlowContainer"><div class="sun-orb-glow"></div></div>
 
-<div id="splash">  <div class="splash-inner">    <div class="splash-orb" id="splashIcon">🌦️</div>    <h1 id="splashTitle">Team Aqua</h1>    <p>Initializing Smart Weather Station...</p>    <div class="loader"><span></span></div>  </div></div>
-<header class="topbar">  <a class="brand" href="#">    <img src="FullLogo.jpg" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">    <div>      <strong id="brandTitle">TEAM AQUA</strong>      <small id="brandSubtitle">Smart Weather Station</small>    </div>  </a>  <div style="display:flex;align-items:center;gap:12px">    <div class="auto-music-bar" title="Automatic music">      <span class="auto-label">AUTO MUSIC</span>      <label class="auto-toggle">        <input id="autoMusicToggle" type="checkbox" checked>        <span class="auto-slider"></span>      </label>    </div>
-    <div style="display:flex;align-items:center;gap:8px">      <div class="top-clock" id="topClock" aria-live="polite">--:--:--</div>      <div class="clock-toggle" title="Toggle 24/12 hour format">        <label for="clockFormat24" style="font-size:12px;color:var(--muted)">24h</label>        <input id="clockFormat24" type="checkbox" aria-label="24 hour clock">      </div>    </div>  </div>  <button class="menu-btn" id="menuButton" aria-label="Open menu">    <span class="menu-lines"><span></span><span></span><span></span></span>  </button></header>
-<div class="drawer-overlay" id="drawerOverlay"></div><aside class="drawer" id="drawer">  <div class="drawer-head">    <h2>Menu</h2>    <button class="close-btn" id="closeDrawer" aria-label="Close menu">×</button>  </div>  <div class="drawer-nav">    <button data-scroll="dashboard">📊 Dashboard</button>    <button data-scroll="weather">☁️ Online Weather</button>    <button data-scroll="music">🎵 Music</button>    <button data-scroll="privacy-policy">🔒 Privacy & Policy</button>  </div>  <div class="drawer-note" id="drawerNote">    Team Aqua combines ESP32 sensor data with online weather information.  </div></aside>
+<div id="splash">  
+  <div class="splash-inner">    
+    <div class="splash-orb" id="splashIcon">🌦️</div>    
+    <h1 id="splashTitle">Team Aqua</h1>    
+    <p>Initializing Smart Weather Station...</p>    
+    <div class="loader"><span></span></div>  
+  </div>
+</div>
 
-<main id="dashboard">  <section class="hero">    <div class="hero-card">      <img src="FullLogo.jpg" alt="Hero Logo" class="hero-logo" id="heroLogo">
-      <div class="eyebrow" id="heroEyebrow">TEAM AQUA • LIVE SYSTEM</div>      <h1>Weather data, <span>beautifully connected.</span></h1>      <p>        A redesigned dashboard for the Smart Weather Station ecosystem.        Local temperature and humidity come straight from your ESP32 through Firebase,        while wind and pressure come from online weather data.      </p>      <div class="hero-actions">        <button class="primary" id="refreshButton">↻ Refresh weather</button>        <button class="secondary" id="heroMusicButton">▶ Start music</button>      </div>    </div>
-    <div class="mini-stack">      <div class="mini-panel">        <div class="eyebrow">ESP32 LINK</div>        <div class="mini-value" id="heroSensor">Waiting</div>        <div class="mini-sub">Firebase sensor connection</div>      </div>      <div class="mini-panel">        <div class="eyebrow">LOCATION</div>        <div class="mini-value">📍</div>        <div class="mini-sub" id="location">Detecting your location...</div>      </div>    </div>  </section>
-  <div class="status" id="firebaseStatus">    <span class="dot"></span><span id="firebaseStatusText">Connecting to your ESP32...</span>  </div>
-  <section class="grid">    <div class="card">      <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>      <div class="label">Temperature</div>      <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>      <div class="info">From ESP32 sensor</div>    </div>
-    <div class="card">      <div class="card-top"><div class="icon">💧</div><span class="badge">ESP32</span></div>      <div class="label">Humidity</div>      <div class="value humidity" id="humidity">-- <span class="unit">%</span></div>      <div class="info">Local DHT22 sensor</div>    </div>
-    <div class="card">      <div class="card-top"><div class="icon">💨</div><span class="badge">ONLINE</span></div>      <div class="label">Wind Speed</div>      <div class="value wind" id="wind">-- <span class="unit">km/h</span></div>      <div class="info">Online weather data</div>    </div>
-    <div class="card">      <div class="card-top"><div class="icon">📈</div><span class="badge">ONLINE</span></div>      <div class="label">Pressure</div>      <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>      <div class="info">Live atmospheric pressure</div>    </div>  </section>
-  <section class="section" id="weather">    <div class="section-head">      <h2>☁️ Current Weather & Solar</h2>      <span class="pill">AUTO REFRESH • 10 MIN</span>    </div>    <p class="info" id="condition">Waiting for weather data...</p>    <div class="data-row">      <div class="data-box"><span class="info">Sunrise</span><strong id="sunriseTime">--:--</strong></div>      <div class="data-box"><span class="info">Sunset</span><strong id="sunsetTime">--:--</strong></div>      <div class="data-box"><span class="info">Wind direction</span><strong id="windDirection">--</strong></div>    </div>  </section>
-  <section class="section">    <div class="section-head">      <h2>📡 Device Information</h2>      <span class="pill" id="devicePill">WAITING</span>    </div>    <p class="info" id="deviceStatus">Waiting for ESP32...</p>  </section>
-  <section class="section" id="music">    <div class="section-head">      <h2>🎵 Aqua Radio</h2>      <span class="pill">BASS PULSE • AUTO ONLY</span>    </div>    <div class="music-layout">      <div>        <div class="track-title">Bass Pulse</div>        <div class="track-meta">The only site soundtrack • Automatic playback</div>      </div>      <div class="music-controls">        <span class="pill" id="musicState">AUTO ON</span>        <input class="volume" id="volume" type="range" min="0" max="1" step=".01" value=".35" aria-label="Volume">      </div>    </div>    <p class="info" style="margin-bottom:0">      Music is controlled only by the AUTO MUSIC switch at the top.    </p>    <audio id="bassPulseAudio" preload="auto" loop>      <source src="./Bass%20Pulse.mp3" type="audio/mpeg">    </audio>  </section></main>
-<section class="section" id="privacy-policy">  <div class="section-head">    <h2>🔒 Privacy & Content Policy</h2>    <span class="pill">TEAM AQUA</span>  </div>  <p class="info">    Hello, this is Team Aqua. We created and maintain this Smart Weather Station website as part of our project exhibition.  </p>  <p class="info">    All original content, designs, code, graphics, and other materials created by Team Aqua remain the property of their respective owners.  </p>  <p class="info">    Weather information obtained from <strong>Open-Meteo</strong>.  </p>  <p class="info" style="margin-bottom:0">    This website is created for educational and exhibition purposes.  </p></section>
-<footer>  <b id="footerTitle">Team Aqua • Smart Weather Station</b><br>  ESP32 • Firebase • Open-Meteo • Responsive Website</footer>
+<header class="topbar">  
+  <a class="brand" href="#">    
+    <img src="FullLogo.jpg" alt="Team Aqua Logo" class="rotating-logo" id="brandLogo">    
+    <div>      
+      <strong id="brandTitle">TEAM AQUA</strong>      
+      <small id="brandSubtitle">Smart Weather Station</small>    
+    </div>  
+  </a>  
+  <div style="display:flex;align-items:center;gap:12px">    
+    <div class="auto-music-bar" title="Automatic music">      
+      <span class="auto-label">AUTO MUSIC</span>      
+      <label class="auto-toggle">        
+        <input id="autoMusicToggle" type="checkbox" checked>        
+        <span class="auto-slider"></span>      </label>    
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">      
+      <div class="top-clock" id="topClock" aria-live="polite">--:--:--</div>      
+      <div class="clock-toggle" title="Toggle 24/12 hour format">        
+        <label for="clockFormat24" style="font-size:12px;color:var(--muted)">24h</label>        
+        <input id="clockFormat24" type="checkbox" aria-label="24 hour clock">      </div>    
+    </div>  </div>  
+  <button class="menu-btn" id="menuButton" aria-label="Open menu">    
+    <span class="menu-lines"><span></span><span></span><span></span></span>  </button>
+</header>
 
-<!-- FIREBASE & APP LOGIC WITH PARTICLES, SUNRISE/SUNSET & HOLIDAYS -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">  
+  <div class="drawer-head">    
+    <h2>Menu</h2>    
+    <button class="close-btn" id="closeDrawer" aria-label="Close menu">×</button>  </div>  
+  <div class="drawer-nav">    
+    <button data-scroll="dashboard">📊 Dashboard</button>    
+    <button data-scroll="weather">☁️ Online Weather</button>    
+    <button data-scroll="music">🎵 Music</button>    
+    <button data-scroll="privacy-policy">🔒 Privacy & Policy</button>  </div>  
+  <div class="drawer-note" id="drawerNote">    
+    Team Aqua combines ESP32 sensor data with online weather information.  </div>
+</aside>
+
+<main id="dashboard">  
+  <section class="hero">    
+    <div class="hero-card">      
+      <img src="FullLogo.jpg" alt="Hero Logo" class="hero-logo" id="heroLogo">
+      <div class="eyebrow" id="heroEyebrow">TEAM AQUA • LIVE SYSTEM</div>      
+      <h1>Weather data, <span>beautifully connected.</span></h1>      
+      <p>        
+        A redesigned dashboard for the Smart Weather Station ecosystem.        
+        Local temperature and humidity come straight from your ESP32 through Firebase,        
+        while wind and pressure come from online weather data.      </p>      
+      <div class="hero-actions">        
+        <button class="primary" id="refreshButton">↻ Refresh weather</button>        
+        <button class="secondary" id="heroMusicButton">▶ Start music</button>      </div>    
+    </div>
+    <div class="mini-stack">      
+      <div class="mini-panel">        
+        <div class="eyebrow">ESP32 LINK</div>        
+        <div class="mini-value" id="heroSensor">Waiting</div>        
+        <div class="mini-sub">Firebase sensor connection</div>      </div>      
+      <div class="mini-panel">        
+        <div class="eyebrow">LOCATION</div>        
+        <div class="mini-value">📍</div>        
+        <div class="mini-sub" id="location">Detecting your location...</div>      </div>    </div>  </section>
+
+  <div class="status" id="firebaseStatus">    
+    <span class="dot"></span><span id="firebaseStatusText">Connecting to your ESP32...</span>  
+  </div>
+
+  <section class="grid">    
+    <div class="card">      
+      <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>      
+      <div class="label">Temperature</div>      
+      <div class="value temperature" id="temperature">-- <span class="unit">°C</span></div>      
+      <div class="info">From ESP32 sensor</div>    </div>
+    <div class="card">      
+      <div class="card-top"><div class="icon">💧</div><span class="badge">ESP32</span></div>      
+      <div class="label">Humidity</div>      
+      <div class="value humidity" id="humidity">-- <span class="unit">%</span></div>      
+      <div class="info">Local DHT22 sensor</div>    </div>
+    <div class="card">      
+      <div class="card-top"><div class="icon">💨</div><span class="badge">ONLINE</span></div>      
+      <div class="label">Wind Speed</div>      
+      <div class="value wind" id="wind">-- <span class="unit">km/h</span></div>      
+      <div class="info">Online weather data</div>    </div>
+    <div class="card">      
+      <div class="card-top"><div class="icon">📈</div><span class="badge">ONLINE</span></div>      
+      <div class="label">Pressure</div>      
+      <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>      
+      <div class="info">Live atmospheric pressure</div>    </div>  </section>
+
+  <section class="section" id="weather">    
+    <div class="section-head">      
+      <h2>☁️ Current Weather & Solar</h2>      
+      <span class="pill">AUTO REFRESH • 10 MIN</span>    </div>    
+    <p class="info" id="condition">Waiting for weather data...</p>    
+    <div class="data-row">      
+      <div class="data-box"><span class="info">Sunrise</span><strong id="sunriseTime">--:--</strong></div>      
+      <div class="data-box"><span class="info">Sunset</span><strong id="sunsetTime">--:--</strong></div>      
+      <div class="data-box"><span class="info">Wind direction</span><strong id="windDirection">--</strong></div>    </div>  
+  </section>
+
+  <section class="section">    
+    <div class="section-head">      
+      <h2>📡 Device Information</h2>      
+      <span class="pill" id="devicePill">WAITING</span>    </div>    
+    <p class="info" id="deviceStatus">Waiting for ESP32...</p>  
+  </section>
+
+  <section class="section" id="music">    
+    <div class="section-head">      
+      <h2>🎵 Aqua Radio</h2>      
+      <span class="pill">BASS PULSE • AUTO ONLY</span>    </div>    
+    <div class="music-layout">      
+      <div>        
+        <div class="track-title">Bass Pulse</div>        
+        <div class="track-meta">The only site soundtrack • Automatic playback</div>      </div>      
+      <div class="music-controls">        
+        <span class="pill" id="musicState">AUTO ON</span>        
+        <input class="volume" id="volume" type="range" min="0" max="1" step=".01" value=".35" aria-label="Volume">      </div>    </div>    
+    <p class="info" style="margin-bottom:0">      Music is controlled only by the AUTO MUSIC switch at the top.    </p>    
+    <audio id="bassPulseAudio" preload="auto" loop>      
+      <source src="./Bass%20Pulse.mp3" type="audio/mpeg">    </audio>  
+  </section>
+</main>
+
+<section class="section" id="privacy-policy">  
+  <div class="section-head">    
+    <h2>🔒 Privacy & Content Policy</h2>    
+    <span class="pill" id="policyPill">TEAM AQUA</span>  </div>  
+  <p class="info">Hello, this is Team Aqua. We created and maintain this Smart Weather Station website as part of our project exhibition.</p>  
+  <p class="info">All original content, designs, code, graphics, and other materials created by Team Aqua remain the property of their respective owners.</p>  
+  <p class="info">Weather information obtained from <strong>Open-Meteo</strong>.</p>  
+  <p class="info" style="margin-bottom:0">This website is created for educational and exhibition purposes.</p>
+</section>
+
+<footer>  
+  <b id="footerTitle">Team Aqua • Smart Weather Station</b><br>  
+  ESP32 • Firebase • Open-Meteo • Responsive Website
+</footer>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -82,7 +490,7 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
     // Halloween (Active until November 1st)
     if ((m === 9 && d >= 25) || (m === 10 && d <= 1)) {
       document.body.style.setProperty('--bg', '#0c0714');
-      document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(255,140,0,0.15), transparent 30%), linear-gradient(180deg, #140b24 0%, #0c0714 55%, #050308 100%)';
+      document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(249,115,22,0.2), transparent 35%), linear-gradient(135deg, #140b24 0%, #0c0714 50%, #040207 100%)';
       const splashIcon = $('#splashIcon'); if(splashIcon) splashIcon.textContent = '🎃';
       const splashTitle = $('#splashTitle'); if(splashTitle) splashTitle.textContent = 'Team Aqua • Spooky Station';
       const brandTitle = $('#brandTitle'); if(brandTitle) brandTitle.textContent = 'TEAM AQUA 🎃';
@@ -92,7 +500,7 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
     } 
     // Christmas (December 1 to 25)
     else if (m === 11 && d <= 25) {
-      document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(239,68,68,0.15), transparent 30%), linear-gradient(180deg, #091a13 0%, #050f0c 55%, #020705 100%)';
+      document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(239,68,68,0.2), transparent 35%), linear-gradient(135deg, #091a13 0%, #050f0c 50%, #020705 100%)';
       const splashIcon = $('#splashIcon'); if(splashIcon) splashIcon.textContent = '🎄';
       const brandTitle = $('#brandTitle'); if(brandTitle) brandTitle.textContent = 'TEAM AQUA 🎄';
       const brandSub = $('#brandSubtitle'); if(brandSub) brandSub.textContent = 'Christmas Holiday Edition';
@@ -122,15 +530,15 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
   function initParticles(mode) {
     effectMode = mode;
     particles = [];
-    const count = mode === 'rain' ? 120 : (mode === 'snow' ? 80 : 0);
+    const count = mode === 'rain' ? 140 : (mode === 'snow' ? 90 : 0);
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        length: mode === 'rain' ? Math.random() * 20 + 10 : Math.random() * 4 + 2,
-        speed: mode === 'rain' ? Math.random() * 8 + 6 : Math.random() * 1.5 + 0.5,
-        opacity: Math.random() * 0.5 + 0.3,
-        radius: mode === 'snow' ? Math.random() * 3 + 1 : 0
+        length: mode === 'rain' ? Math.random() * 22 + 10 : Math.random() * 4 + 2,
+        speed: mode === 'rain' ? Math.random() * 9 + 6 : Math.random() * 1.5 + 0.6,
+        opacity: Math.random() * 0.6 + 0.3,
+        radius: mode === 'snow' ? Math.random() * 3.5 + 1 : 0
       });
     }
     const sunContainer = $('#sunGlowContainer');
@@ -143,7 +551,7 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
   function animateWeather() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (effectMode === 'rain') {
-      ctx.strokeStyle = 'rgba(85,183,255,0.45)';
+      ctx.strokeStyle = 'rgba(56,189,248,0.5)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       particles.forEach(p => {
@@ -155,7 +563,7 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
       });
       ctx.stroke();
     } else if (effectMode === 'snow') {
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.beginPath();
       particles.forEach(p => {
         ctx.moveTo(p.x, p.y);
@@ -247,7 +655,6 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
         const cond = $('#condition');        
         const code = data.current_weather.weathercode;
         
-        // Dynamic Weather Animation Modes based on WMO code
         if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code)) {
           initParticles('rain');
           if(cond) cond.textContent = `🌧️ Rainy • Temp ${data.current_weather.temperature}°C • Wind ${data.current_weather.windspeed}km/h`;
@@ -280,7 +687,6 @@ footer{position:relative;z-index:2;text-align:center;color:#61758e;padding:30px 
         const directionEl = $('#windDirection');        
         if(directionEl) directionEl.textContent = data.current_weather.winddirection != null ? `${data.current_weather.winddirection}°` : 'Variable';
 
-        // Parse Accurate Sunrise & Sunset from Daily Data
         if (data.daily && data.daily.sunrise && data.daily.sunset) {
           const sunriseStr = new Date(data.daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const sunsetStr = new Date(data.daily.sunset[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
