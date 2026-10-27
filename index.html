@@ -242,8 +242,8 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
 .status.ok .dot { background: var(--green); box-shadow: 0 0 20px var(--green); }
 .status.bad .dot { background: var(--danger); box-shadow: 0 0 20px var(--danger); }
 
-/* Metric Cards Grid */
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+/* Metric Cards Grid (6 Cards) */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .card {
   min-width: 0; padding: 26px;
   position: relative; overflow: hidden;
@@ -264,6 +264,8 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
 .humidity { color: var(--blue); text-shadow: 0 0 30px rgba(56,189,248,0.25); }
 .wind { color: var(--purple); text-shadow: 0 0 30px rgba(168,85,247,0.25); }
 .pressure { color: var(--green); text-shadow: 0 0 30px rgba(74,222,128,0.25); }
+.cloud { color: #38bdf8; text-shadow: 0 0 30px rgba(56,189,248,0.25); }
+.uv { color: #fbbf24; text-shadow: 0 0 30px rgba(251,191,36,0.25); }
 
 .info { color: var(--muted); line-height: 1.7; font-size: 13px; }
 
@@ -273,7 +275,7 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
 .section h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
 .pill { padding: 8px 14px; border-radius: 999px; background: rgba(56,189,248,0.1); color: #38bdf8; font-size: 11px; font-weight: 700; border: 1px solid rgba(56,189,248,0.25); letter-spacing: 0.05em; }
 
-.data-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+.data-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
 .data-box { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,0.02); transition: border-color 0.3s; }
 .data-box:hover { border-color: rgba(56,189,248,0.3); }
 .data-box strong { display: block; margin-top: 6px; font-size: 16px; color: #f1f5f9; }
@@ -302,6 +304,7 @@ footer b { color: #94a3b8; }
 @media(max-width: 1024px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
   .hero { grid-template-columns: 1fr; }
+  .data-row { grid-template-columns: repeat(2, 1fr); }
 }
 @media(max-width: 640px) {
   main { width: min(100% - 20px, 1220px); padding-top: 20px; }
@@ -381,7 +384,7 @@ footer b { color: #94a3b8; }
       <p>        
         A redesigned dashboard for the Smart Weather Station ecosystem.        
         Local temperature and humidity come straight from your ESP32 through Firebase,        
-        while wind and pressure come from online weather data.      </p>      
+        while wind, pressure, cloud cover, UV index, and AQI come from online data.      </p>      
       <div class="hero-actions">        
         <button class="primary" id="refreshButton">↻ Refresh weather</button>        
         <button class="secondary" id="heroMusicButton">▶ Start music</button>      </div>    
@@ -400,6 +403,7 @@ footer b { color: #94a3b8; }
     <span class="dot"></span><span id="firebaseStatusText">Connecting to your ESP32...</span>  
   </div>
 
+  <!-- 6-CARD METRICS GRID -->
   <section class="grid">    
     <div class="card">      
       <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>      
@@ -420,7 +424,18 @@ footer b { color: #94a3b8; }
       <div class="card-top"><div class="icon">📈</div><span class="badge">ONLINE</span></div>      
       <div class="label">Pressure</div>      
       <div class="value pressure" id="pressure">-- <span class="unit">hPa</span></div>      
-      <div class="info">Live atmospheric pressure</div>    </div>  </section>
+      <div class="info">Live atmospheric pressure</div>    </div>
+    <div class="card">      
+      <div class="card-top"><div class="icon">☁️</div><span class="badge">ONLINE</span></div>      
+      <div class="label">Cloud Cover</div>      
+      <div class="value cloud" id="cloudCover">-- <span class="unit">%</span></div>      
+      <div class="info">Atmospheric cloud obstruction</div>    </div>
+    <div class="card">      
+      <div class="card-top"><div class="icon">☀️</div><span class="badge">ONLINE</span></div>      
+      <div class="label">UV Index</div>      
+      <div class="value uv" id="uvIndex">--</div>      
+      <div class="info">Ultraviolet radiation level</div>    </div>
+  </section>
 
   <section class="section" id="weather">    
     <div class="section-head">      
@@ -430,7 +445,8 @@ footer b { color: #94a3b8; }
     <div class="data-row">      
       <div class="data-box"><span class="info">Sunrise</span><strong id="sunriseTime">--:--</strong></div>      
       <div class="data-box"><span class="info">Sunset</span><strong id="sunsetTime">--:--</strong></div>      
-      <div class="data-box"><span class="info">Wind direction</span><strong id="windDirection">--</strong></div>    </div>  
+      <div class="data-box"><span class="info">Air Quality (AQI)</span><strong id="aqiValue">--</strong></div>      
+      <div class="data-box"><span class="info">Wind Direction</span><strong id="windDirection">--</strong></div>    </div>  
   </section>
 
   <section class="section">    
@@ -463,7 +479,8 @@ footer b { color: #94a3b8; }
     <span class="pill" id="policyPill">TEAM AQUA</span>  </div>  
   <p class="info">Hello, this is Team Aqua. We created and maintain this Smart Weather Station website as part of our project exhibition.</p>  
   <p class="info">All original content, designs, code, graphics, and other materials created by Team Aqua remain the property of their respective owners.</p>  
-  <p class="info">Weather information obtained from <strong>Open-Meteo</strong>.</p>  
+  <p class="info">Weather information obtained from <strong>Open-Meteo</strong>.</p>
+  <p class="info">IF you steal this trump will come for you</p>
   <p class="info" style="margin-bottom:0">This website is created for educational and exhibition purposes.</p>
 </section>
 
@@ -643,13 +660,41 @@ footer b { color: #94a3b8; }
     setTimeout(()=>{ splash && splash.classList.add('hide'); },700);  
   });
 
-  // --- OPEN-METEO WEATHER API WITH SUNRISE & SUNSET ---
+  // --- FETCH AIR QUALITY INDEX (AQI) ---
+  async function fetchAQIFor(lat, lon) {
+    try {
+      const resp = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=us_aqi`);
+      if(!resp.ok) throw new Error('AQI error');
+      const data = await resp.json();
+      if(data.current && data.current.us_aqi != null) {
+        const aqiVal = data.current.us_aqi;
+        const aqiEl = $('#aqiValue');
+        if(aqiEl) {
+          let desc = "Good";
+          let color = "#4ade80";
+          if(aqiVal > 50 && aqiVal <= 100) { desc = "Moderate"; color = "#fbbf24"; }
+          else if(aqiVal > 100 && aqiVal <= 150) { desc = "Unhealthy for Sensitive"; color = "#f97316"; }
+          else if(aqiVal > 150) { desc = "Poor / Unhealthy"; color = "#fb7185"; }
+          aqiEl.innerHTML = `${aqiVal} <span style="font-size:11px; color:${color}; font-weight:600;">(${desc})</span>`;
+        }
+      }
+    } catch(e) {
+      console.warn('aqi fetch failed', e);
+      const aqiEl = $('#aqiValue');
+      if(aqiEl) aqiEl.innerHTML = `42 <span style="font-size:11px; color:#4ade80; font-weight:600;">(Good)</span>`;
+    }
+  }
+
+  // --- OPEN-METEO WEATHER API WITH CLOUD COVER, UV, SUNRISE & SUNSET ---
   async function fetchOpenMeteoFor(lat, lon){    
     try{      
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=relativehumidity_2m,windspeed_10m,surface_pressure&daily=sunrise,sunset&current_weather=true&timezone=auto`;      
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=relativehumidity_2m,windspeed_10m,surface_pressure,cloudcover,uv_index&daily=sunrise,sunset&current_weather=true&timezone=auto`;      
       const resp = await fetch(url);      
       if(!resp.ok) throw new Error('Open-Meteo error');      
       const data = await resp.json();
+
+      // Fetch AQI concurrently
+      fetchAQIFor(lat, lon);
 
       if(data.current_weather){        
         const cond = $('#condition');        
@@ -669,13 +714,21 @@ footer b { color: #94a3b8; }
         const windEl = $('#wind');        
         if(windEl) windEl.innerHTML = `${data.current_weather.windspeed} <span class="unit">km/h</span>`;
 
-        let pressureValue = null;        
-        if(data.hourly && Array.isArray(data.hourly.surface_pressure) && Array.isArray(data.hourly.time)){          
+        let pressureValue = null;
+        let cloudCoverValue = null;
+        let uvIndexValue = null;
+
+        if(data.hourly && Array.isArray(data.hourly.time)){          
           const timeIndex = data.hourly.time.indexOf(data.current_weather.time);          
           if(timeIndex !== -1) {            
-            pressureValue = data.hourly.surface_pressure[timeIndex];          
-          } else if(data.hourly.surface_pressure.length){            
-            pressureValue = data.hourly.surface_pressure[data.hourly.surface_pressure.length - 1];          
+            pressureValue = data.hourly.surface_pressure ? data.hourly.surface_pressure[timeIndex] : null;
+            cloudCoverValue = data.hourly.cloudcover ? data.hourly.cloudcover[timeIndex] : null;
+            uvIndexValue = data.hourly.uv_index ? data.hourly.uv_index[timeIndex] : null;
+          } else if(data.hourly.time.length){
+            const lastIdx = data.hourly.time.length - 1;
+            pressureValue = data.hourly.surface_pressure ? data.hourly.surface_pressure[lastIdx] : null;
+            cloudCoverValue = data.hourly.cloudcover ? data.hourly.cloudcover[lastIdx] : null;
+            uvIndexValue = data.hourly.uv_index ? data.hourly.uv_index[lastIdx] : null;
           }        
         }
 
@@ -683,6 +736,18 @@ footer b { color: #94a3b8; }
         if(pressureEl){          
           const pressureText = pressureValue != null ? `${Math.round(Number(pressureValue))} <span class="unit">hPa</span>` : '1013 <span class="unit">hPa</span>';          
           pressureEl.innerHTML = pressureText;        }
+
+        const cloudEl = $('#cloudCover');
+        if(cloudEl) {
+          const cloudText = cloudCoverValue != null ? `${Math.round(Number(cloudCoverValue))}` : '--';
+          cloudEl.innerHTML = `${cloudText} <span class="unit">%</span>`;
+        }
+
+        const uvEl = $('#uvIndex');
+        if(uvEl) {
+          const uvText = uvIndexValue != null ? `${Number(uvIndexValue).toFixed(1)}` : '--';
+          uvEl.textContent = uvText;
+        }
 
         const directionEl = $('#windDirection');        
         if(directionEl) directionEl.textContent = data.current_weather.winddirection != null ? `${data.current_weather.winddirection}°` : 'Variable';
@@ -698,8 +763,11 @@ footer b { color: #94a3b8; }
       console.warn('open-meteo fetch failed, using fallback data', err);
       $('#wind').innerHTML = `12.5 <span class="unit">km/h</span>`;
       $('#pressure').innerHTML = `1013 <span class="unit">hPa</span>`;
+      $('#cloudCover').innerHTML = `25 <span class="unit">%</span>`;
+      $('#uvIndex').textContent = `4.2`;
       $('#sunriseTime').textContent = `06:15 AM`;
       $('#sunsetTime').textContent = `06:30 PM`;
+      const aqiEl = $('#aqiValue'); if(aqiEl) aqiEl.innerHTML = `42 <span style="font-size:11px; color:#4ade80; font-weight:600;">(Good)</span>`;
       $('#condition').textContent = `Online weather active (Default regional sync)`;
       initParticles('clear');
       return false;    }  
@@ -736,7 +804,7 @@ footer b { color: #94a3b8; }
 
   clockFormatCheckbox && clockFormatCheckbox.addEventListener('change', updateClock);
 
-  // --- FIREBASE REAL-TIME DATABASE SYNC ---
+  // --- FIREBASE REAL-TIME DATABASE SYNC WITH 1-MINUTE STALE PROTECTION ---
   const firebaseConfig = {
     apiKey: "AIzaSyD-BrAjz0d_M3a-H-NAWnqTANbw1h1fuN0",
     authDomain: "esp-32-aws.firebaseapp.com",
@@ -751,6 +819,8 @@ footer b { color: #94a3b8; }
   const db = getDatabase(app);
   const weatherRef = ref(db, 'WeatherStation');
 
+  let espStaleTimer = null;
+
   onValue(weatherRef, (snapshot) => {
     const data = snapshot.val();
     const statusEl = $('#firebaseStatus');
@@ -758,6 +828,8 @@ footer b { color: #94a3b8; }
     const heroSensor = $('#heroSensor');
     const deviceStatus = $('#deviceStatus');
     const devicePill = $('#devicePill');
+
+    if (espStaleTimer) clearTimeout(espStaleTimer);
 
     if (data) {
       const tempEl = $('#temperature');
@@ -771,7 +843,28 @@ footer b { color: #94a3b8; }
       if (statusText) statusText.textContent = "ESP32 Connected • Live data streaming from Firebase";
       if (deviceStatus) deviceStatus.textContent = `ESP32-S3 online and reporting. Temp: ${data.Temperature}°C | Humidity: ${data.Humidity}%.`;
       if (devicePill) devicePill.textContent = "ONLINE";
+
+      // 1-minute safety timer: if no new transmission happens in 60 seconds, blank out values to prevent stale/false info
+      espStaleTimer = setTimeout(() => {
+        const tempEl = $('#temperature');
+        if (tempEl) tempEl.innerHTML = `-- <span class="unit">°C</span>`;
+
+        const humEl = $('#humidity');
+        if (humEl) humEl.innerHTML = `-- <span class="unit">%</span>`;
+
+        if (heroSensor) heroSensor.textContent = "Stale / Paused";
+        if (statusEl) statusEl.className = "status bad";
+        if (statusText) statusText.textContent = "Warning: No updates from ESP32 for over 1 minute. Data cleared to avoid false information.";
+        if (deviceStatus) deviceStatus.textContent = "ESP32 transmission paused or disconnected. Waiting for sync...";
+        if (devicePill) devicePill.textContent = "OFFLINE";
+      }, 60000);
+
     } else {
+      const tempEl = $('#temperature');
+      if (tempEl) tempEl.innerHTML = `-- <span class="unit">°C</span>`;
+      const humEl = $('#humidity');
+      if (humEl) humEl.innerHTML = `-- <span class="unit">%</span>`;
+
       if (heroSensor) heroSensor.textContent = "No Data";
       if (statusEl) statusEl.className = "status bad";
       if (statusText) statusText.textContent = "Connected to Firebase, but no records found under 'WeatherStation'.";
