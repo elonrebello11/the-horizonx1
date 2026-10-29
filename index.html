@@ -24,6 +24,16 @@
   --radius: 28px;
 }
 
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --panel: rgba(255, 255, 255, 0.85);
+  --panel-strong: rgba(241, 245, 249, 0.95);
+  --line: rgba(15, 23, 42, 0.12);
+  --text: #0f172a;
+  --muted: #64748b;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 
@@ -34,9 +44,15 @@ body {
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   background: radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.15), transparent 35%),
               radial-gradient(circle at 85% 85%, rgba(45, 212, 191, 0.12), transparent 35%),
-              linear-gradient(135deg, #030712 0%, #080e1a 50%, #020408 100%);
+              linear-gradient(135deg, var(--bg) 0%, #080e1a 50%, #020408 100%);
   overflow-x: hidden;
-  transition: background 1.2s ease;
+  transition: background 1.2s ease, color 0.5s ease;
+}
+
+[data-theme="light"] body {
+  background: radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.1), transparent 35%),
+              radial-gradient(circle at 85% 85%, rgba(45, 212, 191, 0.1), transparent 35%),
+              linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
 button, input, select { font: inherit; cursor: pointer; }
@@ -48,13 +64,12 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, black 60%, transparent 95%);
 }
 
-/* Weather Canvas Particles */
 #weatherCanvas {
   position: fixed;
   inset: 0;
@@ -63,7 +78,6 @@ body::before {
   opacity: 0.65;
 }
 
-/* Glowing Sun Atmospheric Orb */
 .sun-glow-container {
   position: fixed;
   right: -120px;
@@ -88,14 +102,13 @@ body::before {
   50% { transform: scale(1.15); filter: drop-shadow(0 0 70px rgba(251,191,36,0.7)); }
 }
 
-/* Splash Screen */
 #splash {
   position: fixed;
   inset: 0;
   z-index: 2000;
   display: grid;
   place-items: center;
-  background: #030712;
+  background: var(--bg);
   transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
 }
 #splash.hide { opacity: 0; visibility: hidden; }
@@ -116,25 +129,23 @@ body::before {
 }
 .splash-inner h1 { margin: 24px 0 8px; font-size: 32px; letter-spacing: -0.03em; }
 .splash-inner p { margin: 0; color: var(--muted); }
-.loader { width: 200px; height: 4px; margin: 24px auto 0; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+.loader { width: 200px; height: 4px; margin: 24px auto 0; background: rgba(148,163,184,0.15); border-radius: 99px; overflow: hidden; }
 .loader span { display: block; width: 45%; height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); animation: loadAnim 1.4s infinite ease-in-out; }
 @keyframes loadAnim { from { transform: translateX(-130%); } to { transform: translateX(350%); } }
 
-/* Topbar */
 .topbar {
   position: sticky; top: 0; z-index: 900;
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px clamp(20px, 4vw, 52px);
-  background: rgba(3, 7, 18, 0.82);
+  background: var(--panel);
   backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--line);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--text); }
 .brand strong { display: block; font-size: 16px; letter-spacing: 0.03em; }
 .brand small { display: block; color: var(--muted); margin-top: 2px; font-size: 12px; }
 
-/* Logo Animations */
 @keyframes logoSpinPulse {
   0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 6px rgba(56,189,248,0.4)); }
   50% { transform: scale(1.1) rotate(180deg); filter: drop-shadow(0 0 16px rgba(45,212,191,0.8)); }
@@ -153,47 +164,52 @@ body::before {
 .clock-toggle { display: flex; align-items: center; gap: 8px; margin-left: 12px; }
 .clock-toggle input { width: 15px; height: 15px; accent-color: var(--blue); }
 
+.theme-toggle-btn {
+  background: rgba(148,163,184,0.1); border: 1px solid var(--line); border-radius: 12px;
+  width: 38px; height: 38px; display: grid; place-items: center; font-size: 18px; color: var(--text);
+  transition: all 0.3s;
+}
+.theme-toggle-btn:hover { background: rgba(56,189,248,0.2); border-color: var(--blue); }
+
 .menu-btn {
   width: 48px; height: 48px; border: 1px solid var(--line);
-  border-radius: 16px; background: rgba(255, 255, 255, 0.04); color: white;
+  border-radius: 16px; background: rgba(148,163,184,0.05); color: var(--text);
   display: grid; place-items: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .menu-btn:hover { transform: translateY(-3px); border-color: rgba(56,189,248,0.6); background: rgba(56,189,248,0.12); box-shadow: 0 10px 25px rgba(56,189,248,0.2); }
 .menu-lines { width: 20px; }
-.menu-lines span { display: block; height: 2px; margin: 4px 0; border-radius: 4px; background: #fff; }
+.menu-lines span { display: block; height: 2px; margin: 4px 0; border-radius: 4px; background: var(--text); }
 
-/* Navigation Drawer */
 .drawer {
   position: fixed; top: 0; right: 0; z-index: 1200;
   width: min(380px, 92vw); height: 100vh;
-  padding: 26px; background: rgba(3, 7, 18, 0.98);
+  padding: 26px; background: var(--panel-strong);
   backdrop-filter: blur(30px); border-left: 1px solid var(--line);
   transform: translateX(105%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: -40px 0 100px rgba(0, 0, 0, 0.6);
+  box-shadow: -40px 0 100px rgba(0, 0, 0, 0.3);
 }
 .drawer.open { transform: translateX(0); }
 .drawer-head { display: flex; justify-content: space-between; align-items: center; }
 .drawer h2 { margin: 0; font-size: 22px; }
 .close-btn { border: 0; background: transparent; color: var(--muted); font-size: 32px; transition: color 0.2s; }
-.close-btn:hover { color: #fff; }
+.close-btn:hover { color: var(--text); }
 .drawer-nav { display: grid; gap: 12px; margin-top: 32px; }
 .drawer-nav button {
   text-align: left; border: 1px solid var(--line); border-radius: 16px;
-  background: rgba(255, 255, 255, 0.035); color: #f1f5f9; padding: 15px 18px;
+  background: rgba(148,163,184,0.04); color: var(--text); padding: 15px 18px;
   transition: all 0.25s ease; font-weight: 500;
 }
-.drawer-nav button:hover { border-color: rgba(56,189,248,0.5); background: rgba(56,189,248,0.08); transform: translateX(4px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+.drawer-nav button:hover { border-color: rgba(56,189,248,0.5); background: rgba(56,189,248,0.08); transform: translateX(4px); box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
 .drawer-note { margin-top: 32px; padding: 18px; border-radius: 18px; background: rgba(45,212,191,0.06); border: 1px solid rgba(45,212,191,0.18); color: var(--muted); font-size: 13px; line-height: 1.6; }
-.drawer-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.6); opacity: 0; visibility: hidden; transition: all 0.35s ease; }
+.drawer-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.4); opacity: 0; visibility: hidden; transition: all 0.35s ease; }
 .drawer-overlay.open { opacity: 1; visibility: visible; }
 
-/* Main Content Layout */
 main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); margin: auto; padding: 40px 0 80px; }
 
 .hero { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 24px; align-items: stretch; }
 
 .hero-card, .mini-panel, .card, .section {
-  background: linear-gradient(145deg, rgba(15, 29, 52, 0.85), rgba(7, 16, 31, 0.8));
+  background: var(--panel);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px);
@@ -207,13 +223,13 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
 }
 .hero-card::after {
   content: ""; position: absolute; width: 300px; height: 300px; right: -100px; top: -120px;
-  background: radial-gradient(circle, rgba(56,189,248,0.22), transparent 70%);
+  background: radial-gradient(circle, rgba(56,189,248,0.15), transparent 70%);
   pointer-events: none;
 }
 
 .eyebrow { color: var(--cyan); font-size: 12px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
 .hero h1 { font-size: clamp(38px, 6.5vw, 68px); line-height: 1.02; margin: 16px 0 20px; max-width: 780px; letter-spacing: -0.02em; }
-.hero h1 span { background: linear-gradient(90deg, #fff, var(--blue), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero h1 span { background: linear-gradient(90deg, var(--text), var(--blue), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero p { max-width: 680px; color: var(--muted); line-height: 1.8; font-size: 16px; }
 
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
@@ -222,7 +238,7 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
   font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .primary { background: linear-gradient(135deg, #0284c7, #0d9488); box-shadow: 0 10px 30px rgba(2, 132, 199, 0.35); }
-.secondary { background: rgba(255,255,255,0.04); border-color: var(--line); }
+.secondary { background: rgba(148,163,184,0.08); border-color: var(--line); color: var(--text); }
 .primary:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(2, 132, 199, 0.5); }
 .secondary:hover { transform: translateY(-3px); border-color: rgba(56,189,248,0.5); background: rgba(56,189,248,0.08); }
 
@@ -231,18 +247,16 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
 .mini-value { font-size: 34px; font-weight: 800; margin-top: 6px; letter-spacing: -0.02em; }
 .mini-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
 
-/* Status Bar */
 .status {
   display: flex; align-items: center; gap: 12px;
   margin: 26px 0; padding: 16px 20px; border: 1px solid var(--line);
-  border-radius: 20px; background: rgba(255,255,255,0.03); color: #e2e8f0;
+  border-radius: 20px; background: var(--panel); color: var(--text);
   backdrop-filter: blur(14px); font-weight: 500;
 }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 20px currentColor; }
 .status.ok .dot { background: var(--green); box-shadow: 0 0 20px var(--green); }
 .status.bad .dot { background: var(--danger); box-shadow: 0 0 20px var(--danger); }
 
-/* Metric Cards Grid (6 Cards) */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .card {
   min-width: 0; padding: 26px;
@@ -251,56 +265,52 @@ main { position: relative; z-index: 2; width: min(1220px, calc(100% - 32px)); ma
 .card:hover {
   transform: translateY(-6px);
   border-color: rgba(56,189,248,0.4);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 30px rgba(56,189,248,0.1);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.2), 0 0 30px rgba(56,189,248,0.1);
 }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.icon { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,255,255,0.06); font-size: 24px; border: 1px solid rgba(255,255,255,0.04); }
-.badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; background: rgba(255,255,255,0.04); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.icon { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: rgba(148,163,184,0.06); font-size: 24px; border: 1px solid var(--line); }
+.badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; background: rgba(148,163,184,0.05); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); }
 .label { margin-top: 22px; color: var(--muted); font-size: 14px; font-weight: 500; }
 .value { font-size: clamp(32px, 4vw, 46px); font-weight: 850; margin: 8px 0 6px; letter-spacing: -0.03em; }
 .unit { font-size: 16px; color: var(--muted); font-weight: 600; }
 
-.temperature { color: var(--yellow); text-shadow: 0 0 30px rgba(251,191,36,0.25); }
-.humidity { color: var(--blue); text-shadow: 0 0 30px rgba(56,189,248,0.25); }
-.wind { color: var(--purple); text-shadow: 0 0 30px rgba(168,85,247,0.25); }
-.pressure { color: var(--green); text-shadow: 0 0 30px rgba(74,222,128,0.25); }
-.cloud { color: #38bdf8; text-shadow: 0 0 30px rgba(56,189,248,0.25); }
-.uv { color: #fbbf24; text-shadow: 0 0 30px rgba(251,191,36,0.25); }
+.temperature { color: var(--yellow); }
+.humidity { color: var(--blue); }
+.wind { color: var(--purple); }
+.pressure { color: var(--green); }
+.cloud { color: var(--blue); }
+.uv { color: var(--yellow); }
 
 .info { color: var(--muted); line-height: 1.7; font-size: 13px; }
 
-/* Sections */
 .section { border-radius: var(--radius); padding: 30px; margin-top: 24px; }
 .section-head { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 16px; }
 .section h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
 .pill { padding: 8px 14px; border-radius: 999px; background: rgba(56,189,248,0.1); color: #38bdf8; font-size: 11px; font-weight: 700; border: 1px solid rgba(56,189,248,0.25); letter-spacing: 0.05em; }
 
 .data-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
-.data-box { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,0.02); transition: border-color 0.3s; }
+.data-box { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: rgba(148,163,184,0.02); transition: border-color 0.3s; }
 .data-box:hover { border-color: rgba(56,189,248,0.3); }
-.data-box strong { display: block; margin-top: 6px; font-size: 16px; color: #f1f5f9; }
+.data-box strong { display: block; margin-top: 6px; font-size: 16px; color: var(--text); }
 
-/* Music Player Section */
 .music-layout { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
 .track-title { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
 .track-meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
 .music-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .volume { width: 120px; accent-color: var(--cyan); height: 6px; border-radius: 3px; }
 
-footer { position: relative; z-index: 2; text-align: center; color: #64748b; padding: 40px 20px; font-size: 13px; line-height: 1.6; }
-footer b { color: #94a3b8; }
+footer { position: relative; z-index: 2; text-align: center; color: var(--muted); padding: 40px 20px; font-size: 13px; line-height: 1.6; }
+footer b { color: var(--text); }
 
-/* Auto Music Toggle Switch */
 .auto-music-bar { display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 12px; }
-.auto-label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: #94a3b8; }
+.auto-label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--muted); }
 .auto-toggle { position: relative; width: 52px; height: 30px; }
 .auto-toggle input { opacity: 0; width: 0; height: 0; }
-.auto-slider { position: absolute; inset: 0; border-radius: 99px; background: #1e293b; border: 1px solid var(--line); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.auto-slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: #94a3b8; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+.auto-slider { position: absolute; inset: 0; border-radius: 99px; background: rgba(148,163,184,0.2); border: 1px solid var(--line); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.auto-slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: var(--muted); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 .auto-toggle input:checked + .auto-slider { background: linear-gradient(90deg, #0284c7, #0d9488); border-color: rgba(56,189,248,0.4); }
 .auto-toggle input:checked + .auto-slider:before { transform: translateX(22px); background: white; }
 
-/* Responsive Media Queries */
 @media(max-width: 1024px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
   .hero { grid-template-columns: 1fr; }
@@ -345,6 +355,7 @@ footer b { color: #94a3b8; }
     </div>  
   </a>  
   <div style="display:flex;align-items:center;gap:12px">    
+    <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light/Dark Mode">🌙</button>
     <div class="auto-music-bar" title="Automatic music">      
       <span class="auto-label">AUTO MUSIC</span>      
       <label class="auto-toggle">        
@@ -403,7 +414,6 @@ footer b { color: #94a3b8; }
     <span class="dot"></span><span id="firebaseStatusText">Connecting to your ESP32...</span>  
   </div>
 
-  <!-- 6-CARD METRICS GRID -->
   <section class="grid">    
     <div class="card">      
       <div class="card-top"><div class="icon">🌡️</div><span class="badge">ESP32</span></div>      
@@ -479,8 +489,7 @@ footer b { color: #94a3b8; }
     <span class="pill" id="policyPill">TEAM AQUA</span>  </div>  
   <p class="info">Hello, this is Team Aqua. We created and maintain this Smart Weather Station website as part of our project exhibition.</p>  
   <p class="info">All original content, designs, code, graphics, and other materials created by Team Aqua remain the property of their respective owners.</p>  
-  <p class="info">Weather information obtained from <strong>Open-Meteo</strong>.</p>
-  <p class="info">IF you steal this trump will come for you</p>
+  <p class="info">Weather information obtained from <strong>Open-Meteo</strong>.</p>  
   <p class="info" style="margin-bottom:0">This website is created for educational and exhibition purposes.</p>
 </section>
 
@@ -498,16 +507,26 @@ footer b { color: #94a3b8; }
   const clockFormatCheckbox = $('#clockFormat24');  
   const splash = document.getElementById('splash');
 
+  // --- LIGHT / DARK THEME TOGGLE ---
+  const themeToggleBtn = $('#themeToggleBtn');
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    if (currentTheme === 'light') {
+      document.documentElement.removeAttribute('data-theme');
+      themeToggleBtn.textContent = '🌙';
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      themeToggleBtn.textContent = '☀️';
+    }
+  });
+
   // --- AUTOMATED HOLIDAY EASTER EGG SYSTEM ---
   function checkHolidays() {
     const now = new Date();
     const m = now.getMonth(); 
     const d = now.getDate();
 
-    // Halloween (Active until November 1st)
     if ((m === 9 && d >= 25) || (m === 10 && d <= 1)) {
-      document.body.style.setProperty('--bg', '#0c0714');
-      document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(249,115,22,0.2), transparent 35%), linear-gradient(135deg, #140b24 0%, #0c0714 50%, #040207 100%)';
       const splashIcon = $('#splashIcon'); if(splashIcon) splashIcon.textContent = '🎃';
       const splashTitle = $('#splashTitle'); if(splashTitle) splashTitle.textContent = 'Team Aqua • Spooky Station';
       const brandTitle = $('#brandTitle'); if(brandTitle) brandTitle.textContent = 'TEAM AQUA 🎃';
@@ -515,14 +534,11 @@ footer b { color: #94a3b8; }
       const heroEyebrow = $('#heroEyebrow'); if(heroEyebrow) heroEyebrow.textContent = 'TEAM AQUA • HALLOWEEN EXHIBITION';
       const drawerNote = $('#drawerNote'); if(drawerNote) drawerNote.textContent = '👻 Happy Halloween! Enjoy the spooky weather station.';
     } 
-    // Christmas (December 1 to 25)
     else if (m === 11 && d <= 25) {
-      document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(239,68,68,0.2), transparent 35%), linear-gradient(135deg, #091a13 0%, #050f0c 50%, #020705 100%)';
       const splashIcon = $('#splashIcon'); if(splashIcon) splashIcon.textContent = '🎄';
       const brandTitle = $('#brandTitle'); if(brandTitle) brandTitle.textContent = 'TEAM AQUA 🎄';
       const brandSub = $('#brandSubtitle'); if(brandSub) brandSub.textContent = 'Christmas Holiday Edition';
     }
-    // Easter (Spring approximation)
     else if ((m === 2 && d >= 20) || (m === 3 && d <= 20)) {
       const splashIcon = $('#splashIcon'); if(splashIcon) splashIcon.textContent = '🐣';
       const brandTitle = $('#brandTitle'); if(brandTitle) brandTitle.textContent = 'TEAM AQUA 🐣';
@@ -531,7 +547,7 @@ footer b { color: #94a3b8; }
   }
   checkHolidays();
 
-  // --- WEATHER PARTICLE ANIMATION ENGINE (RAIN / SNOW / SUN) ---
+  // --- WEATHER PARTICLE ANIMATION ENGINE ---
   const canvas = $('#weatherCanvas');
   const ctx = canvas.getContext('2d');
   let particles = [];
@@ -660,7 +676,6 @@ footer b { color: #94a3b8; }
     setTimeout(()=>{ splash && splash.classList.add('hide'); },700);  
   });
 
-  // --- FETCH AIR QUALITY INDEX (AQI) ---
   async function fetchAQIFor(lat, lon) {
     try {
       const resp = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=us_aqi`);
@@ -679,13 +694,11 @@ footer b { color: #94a3b8; }
         }
       }
     } catch(e) {
-      console.warn('aqi fetch failed', e);
       const aqiEl = $('#aqiValue');
       if(aqiEl) aqiEl.innerHTML = `42 <span style="font-size:11px; color:#4ade80; font-weight:600;">(Good)</span>`;
     }
   }
 
-  // --- OPEN-METEO WEATHER API WITH CLOUD COVER, UV, SUNRISE & SUNSET ---
   async function fetchOpenMeteoFor(lat, lon){    
     try{      
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=relativehumidity_2m,windspeed_10m,surface_pressure,cloudcover,uv_index&daily=sunrise,sunset&current_weather=true&timezone=auto`;      
@@ -693,7 +706,6 @@ footer b { color: #94a3b8; }
       if(!resp.ok) throw new Error('Open-Meteo error');      
       const data = await resp.json();
 
-      // Fetch AQI concurrently
       fetchAQIFor(lat, lon);
 
       if(data.current_weather){        
@@ -760,7 +772,6 @@ footer b { color: #94a3b8; }
         }
       }
       return true;    } catch(err){      
-      console.warn('open-meteo fetch failed, using fallback data', err);
       $('#wind').innerHTML = `12.5 <span class="unit">km/h</span>`;
       $('#pressure').innerHTML = `1013 <span class="unit">hPa</span>`;
       $('#cloudCover').innerHTML = `25 <span class="unit">%</span>`;
@@ -844,7 +855,7 @@ footer b { color: #94a3b8; }
       if (deviceStatus) deviceStatus.textContent = `ESP32-S3 online and reporting. Temp: ${data.Temperature}°C | Humidity: ${data.Humidity}%.`;
       if (devicePill) devicePill.textContent = "ONLINE";
 
-      // 1-minute safety timer: if no new transmission happens in 60 seconds, blank out values to prevent stale/false info
+      // 1-minute timeout: if no updates for 60s, blank out values to prevent stale/false info
       espStaleTimer = setTimeout(() => {
         const tempEl = $('#temperature');
         if (tempEl) tempEl.innerHTML = `-- <span class="unit">°C</span>`;
@@ -870,7 +881,6 @@ footer b { color: #94a3b8; }
       if (statusText) statusText.textContent = "Connected to Firebase, but no records found under 'WeatherStation'.";
     }
   }, (error) => {
-    console.error("Firebase sync error:", error);
     const statusEl = $('#firebaseStatus');
     const statusText = $('#firebaseStatusText');
     if (statusEl) statusEl.className = "status bad";
